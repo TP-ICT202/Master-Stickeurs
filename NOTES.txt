@@ -1,0 +1,32 @@
+[ mise a jour ][1] L'app doit aussi etre capable de generer des stickeurs adaptee en fonction du contexte soumise, des Gif d'une situation similaire au contexte et des short video animee par la meme occassion.
+[2] Je veux que l'app( mobile ) est un design pour stylee avec des animation de transition de bout en bout !
+------------
+Je ne vois pas les boutons de creation/generation de Stickeurs, GIFS, ou meme short videos .. ?
+------------
+[1] Dans la section [Context], ajuste l'affichage des 4 Format pour les afficher sous forme de cases( case photo avec description ). [2] Dans la section [Voice-to-meme], enleve l'affichage des 4 Format et remplace par plus de parametres pour cette section. [3] Je veux que l'app possede un fond blanc avec des emojis( noir et blanc ) recouvert dessus. [4] Dans la nav-bar du haut de la section [Galerie], l'image de l'emoji(rigole) ne doit pas avoir de bordure noir( de la case ), je veux juste leur image propre a l'affichage !
+------------
+[1] Dans la section [Context], enleve la case noir vide( entre la case de saissit du context et le 04 Format ), Ajuste l'affichage des 4 Format( image en fond de la case coloree + Description ) pour en faire des case de selection pour la generation de contenu au choix a partir du text saissit par l'utilisateur. [2] Dans la section [Voice-to-meme], ajoute un paramtre de selction de type de contenu a generer au choix( Stickeurs, GIFS, short videos ). [3] Je veux un fond d'ecran pour l'app blanc avec des emojis dessusen noir et blanc ... ! [4] Je veux une page d'acceuil de presentation a l'ouverture de l'app avec son nom, des animation de lancement avant meme d'entree dans les section de l'app !
+------------
+[1] Je veux une page de presentation plus animee, avec un fond background plein d'icons et emojis et dautres ! [2] Dana l'affichage des section de la page, je veux que tu me change tous le style de l'app pour un autre designe( au choix ) ... !
+------------
+[1] Dans la page de presentation, ajuste les animation en fond pour plus stickeurs, emojis en plus nombreux, plus grand et plus visible a l'ecran. Aussi ajuste l'affichage des case a cette page( je ne veux pas de boudure noir ), l'affichage des 04 format( Meme, Stickers AI, GIFs Animes, Short Videos) doivent s'afficher sous forme de case photo en fond de case avec description ( 2x2 ).
+[2] Modifie le designe de tous l'app pourun style( Immersive UI )
+------------
+
+[ ============================================================================================== ]
+
+[1] Le texte de description de la page de presentation n'est pas lisible.
+[2] Je veux de plus gros emoji en fond de la page de presentation !
+[3] je veux que tu ajoute une section de parametre pour les configurations globale de toute l'app( Langue, editions, theme, et d'autres ).
+[4] Dans la creation de meme/stickeurs/GIFS, il doit y'avoir une fenetre supplementaire de configuration avec ajout, edition, et suppression manuelle du la sortie et un ensemble d'element pres a etre utilisee(emoji)
+--------------
+[Ajustement : Je veux que la nav-bar du s'affiche dans une fenetre qui s'ouvre de cote-gauche de l'ecran dans l'app ! ]
+[2] Dans les paramtre, parmi les theme visuel ajoute un theme claire(white), et pour les langues, laisse FR/EN/ES 
+[3] Je veux plus d'image en arriere plan du Meme ! Ajoute une option d'edition pour directement interagir et modifier l'image meme en question
+[4] Dans la page de *Photo*, chaque option de generation de meme( Stickeurs AI, GIF Situation, Short Video ) doivent avoir son interface en fonction des ces particuliarite et differente des autres avec chaqu'un leurs paramatre d'edition, le tous fonctionnelle ! 
+---------------
+[ Ajustement : Dans la generation de "Meme TEXTE IA", on doit avoir la possibilite de choissir quel type de meme sera generer( meme:Stickeurs, meme:Gifs, meme:Emoji ), dans les sections *Texte* et *Vocale* ].
+[2] Je veux que le fond des interfaces de l'app possede des emoji en arriere plan qui s'adapte en fonction du theme actuel !
+[3] Durant le chargement de l'app apres la page de presentation, je veux une animation sur l'emoji qui sourir( anime cet emoji ) quand la bar de progression est en train de ce remplir !
+----------------
+

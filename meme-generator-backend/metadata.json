@@ -1,0 +1,6 @@
+{
+  "name": "Meme Multimodal",
+  "description": "Un générateur de memes intelligent et multimodal exploitant la puissance de l'IA (Gemini 3.5) pour analyser vos discussions (Context Reader), vos notes vocales (Voice-to-Meme) et vos photos (Status Remixer).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
