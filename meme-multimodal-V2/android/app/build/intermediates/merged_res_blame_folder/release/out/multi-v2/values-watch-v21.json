@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.memegenai.app-mergeReleaseResources-26:/values-watch-v21/values-watch-v21.xml",
+            "map": [
+                {
+                    "source": "/home/tchinda/.gradle/caches/transforms-3/c42b819ccfd66b3439139eb5e865721f/transformed/appcompat-1.4.1/res/values-watch-v21/values-watch-v21.xml",
+                    "from": {
+                        "startLines": "2,6,10",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,271,499",
+                        "endLines": "5,9,13",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "266,494,724"
+                    }
+                }
+            ]
+        }
+    ]
+}

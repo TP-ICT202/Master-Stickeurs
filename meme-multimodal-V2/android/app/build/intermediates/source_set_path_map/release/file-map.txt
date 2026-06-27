@@ -1,0 +1,41 @@
+com.memegenai.app-core-runtime-2.2.0-0 /home/tchinda/.gradle/caches/transforms-3/08d79e820676c24a17bdfa95ad0cffd6/transformed/core-runtime-2.2.0/res
+com.memegenai.app-emoji2-views-helper-1.0.0-1 /home/tchinda/.gradle/caches/transforms-3/23e3d94b53d9a8d4e3d4f4a142834203/transformed/emoji2-views-helper-1.0.0/res
+com.memegenai.app-autofill-1.1.0-2 /home/tchinda/.gradle/caches/transforms-3/27980b4800e338fec13fbd706812a0e8/transformed/autofill-1.1.0/res
+com.memegenai.app-lifecycle-runtime-2.6.1-3 /home/tchinda/.gradle/caches/transforms-3/30c2cb4760af7a5519d9c029a833d5ac/transformed/lifecycle-runtime-2.6.1/res
+com.memegenai.app-profileinstaller-1.3.0-4 /home/tchinda/.gradle/caches/transforms-3/47fcadacf8efb555d079dadcad90c05a/transformed/profileinstaller-1.3.0/res
+com.memegenai.app-lifecycle-process-2.6.1-5 /home/tchinda/.gradle/caches/transforms-3/4f295e160fb09d7ec5441450014906e4/transformed/lifecycle-process-2.6.1/res
+com.memegenai.app-fragment-1.3.6-6 /home/tchinda/.gradle/caches/transforms-3/50c5efd7d9a625fdebcc18b6318028c9/transformed/fragment-1.3.6/res
+com.memegenai.app-activity-1.8.2-7 /home/tchinda/.gradle/caches/transforms-3/82590c49878e5a4a20f0e65ea89bf4ce/transformed/activity-1.8.2/res
+com.memegenai.app-lifecycle-livedata-2.6.1-8 /home/tchinda/.gradle/caches/transforms-3/843e6fb88834432f1b8f428abfe2066d/transformed/lifecycle-livedata-2.6.1/res
+com.memegenai.app-lifecycle-livedata-core-2.6.1-9 /home/tchinda/.gradle/caches/transforms-3/9e7c91c195c7c7d911582cb7b08b4252/transformed/lifecycle-livedata-core-2.6.1/res
+com.memegenai.app-annotation-experimental-1.1.0-10 /home/tchinda/.gradle/caches/transforms-3/a304e00ee14be5578f1238b3a5f2d616/transformed/annotation-experimental-1.1.0/res
+com.memegenai.app-savedstate-1.2.1-11 /home/tchinda/.gradle/caches/transforms-3/ab6328d642057ff90ea00a4c5814a385/transformed/savedstate-1.2.1/res
+com.memegenai.app-startup-runtime-1.1.1-12 /home/tchinda/.gradle/caches/transforms-3/ad4edf0526c1e4ae25df4ac7971e380e/transformed/startup-runtime-1.1.1/res
+com.memegenai.app-emoji2-1.0.0-13 /home/tchinda/.gradle/caches/transforms-3/b4d7c85f6d6cc2fa214237ff939b0c0b/transformed/emoji2-1.0.0/res
+com.memegenai.app-drawee-2.5.0-14 /home/tchinda/.gradle/caches/transforms-3/b97ae86f5cc122e2c281be769ed67503/transformed/drawee-2.5.0/res
+com.memegenai.app-appcompat-1.4.1-15 /home/tchinda/.gradle/caches/transforms-3/c42b819ccfd66b3439139eb5e865721f/transformed/appcompat-1.4.1/res
+com.memegenai.app-lifecycle-viewmodel-2.6.1-16 /home/tchinda/.gradle/caches/transforms-3/c817cc6ec4205a9ebcdf6f10f611d594/transformed/lifecycle-viewmodel-2.6.1/res
+com.memegenai.app-browser-1.2.0-17 /home/tchinda/.gradle/caches/transforms-3/d18a990b036f7e2506534890443bfa64/transformed/browser-1.2.0/res
+com.memegenai.app-tracing-1.1.0-18 /home/tchinda/.gradle/caches/transforms-3/d4802a9268417f771f26f06fe6c3be16/transformed/tracing-1.1.0/res
+com.memegenai.app-lifecycle-viewmodel-savedstate-2.6.1-19 /home/tchinda/.gradle/caches/transforms-3/d4a2ae58f4d5edf7b4702d46cadc86d8/transformed/lifecycle-viewmodel-savedstate-2.6.1/res
+com.memegenai.app-appcompat-resources-1.4.1-20 /home/tchinda/.gradle/caches/transforms-3/de71a1cdc0a6bc0dd53c9b706b626fa2/transformed/appcompat-resources-1.4.1/res
+com.memegenai.app-core-1.8.0-21 /home/tchinda/.gradle/caches/transforms-3/f2baed40d8eedee881a8d45aabcd79f4/transformed/core-1.8.0/res
+com.memegenai.app-react-android-0.72.6-release-22 /home/tchinda/.gradle/caches/transforms-3/f54d4331f929f51373bca2dc37cd8585/transformed/react-android-0.72.6-release/res
+com.memegenai.app-res-23 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/generated/res/createBundleReleaseJsAndAssets
+com.memegenai.app-pngs-24 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/generated/res/pngs/release
+com.memegenai.app-resValues-25 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/generated/res/resValues/release
+com.memegenai.app-packageReleaseResources-26 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+com.memegenai.app-packageReleaseResources-27 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+com.memegenai.app-merged_res-28 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/intermediates/merged_res/release
+com.memegenai.app-main-29 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/res
+com.memegenai.app-release-30 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/release/res
+com.memegenai.app-packaged_res-31 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/@react-native-async-storage/async-storage/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-32 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-audio-record/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-33 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-audio-recorder-player/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-34 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-fs/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-35 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-image-picker/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-36 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-linear-gradient/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-37 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-safe-area-context/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-38 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-share/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-39 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-svg/android/build/intermediates/packaged_res/release
+com.memegenai.app-packaged_res-40 /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-view-shot/android/build/intermediates/packaged_res/release
