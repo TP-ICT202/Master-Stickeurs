@@ -169,8 +169,20 @@ Le serveur démarre sur `http://localhost:3000`.
 
 ---
 
-## Équipe — ICT202 G2
+## Équipe — ICT202 (G1) : Groupe 9.x
 
+| Noms/Prenoms | Matricule |
+|--------|---------------|
+| 1 : **KENGNE** | ... |
+| 2 : **EMMANUEL** | ... |
+| 3 : **TChinda Fogang Pierre Legrand** | 24H2001 |
+| 4 : **JOHNY** | ... |
+| 5 : **ULRICH** | ... |
+| 6 : **MANY** | ... |
+| 7 : **ARIANE** | ... |
+| 8 : **JUVENAL** | ... |
+
+--- 
 | Binôme | Responsabilité |
 |--------|---------------|
 | **Binôme 1** | Backend Node.js + orchestration API IA |
