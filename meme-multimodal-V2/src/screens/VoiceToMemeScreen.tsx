@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated, Platform, PermissionsAndroid,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated, Platform,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import RNFS from 'react-native-fs';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { useStore } from '../store/useStore';
 import { themes, getDerivedColors } from '../theme/colors';
 import { t } from '../utils/i18n';
@@ -12,7 +13,9 @@ import MultimediaStudioSection from '../components/MultimediaStudioSection';
 import { generateVoiceToMemeText, transcribeAndGenerateMeme, generateImageFromPrompt } from '../services/gemini';
 import { saveMeme } from '../services/database';
 import { shareMeme } from '../utils/memeSaver';
-import AudioRecord from 'react-native-audio-record';
+import { requestMicPermission, showPermissionDenied } from '../utils/permissions';
+
+const audioRecorderPlayer = new AudioRecorderPlayer();
 
 const mockExpressions = [
   "Qui t'a dit ca ? Faut quitter la-bas !",
@@ -22,20 +25,22 @@ const mockExpressions = [
   "Le secret c'est le travail, mais moi j'aime dormir !",
 ];
 
+function getAudioPath(): string {
+  const ext = Platform.OS === 'ios' ? 'm4a' : 'mp4';
+  return `${RNFS.CachesDirectoryPath}/meme_audio_${Date.now()}.${ext}`;
+}
+
 export default function VoiceToMemeScreen() {
   const store = useStore();
   const theme = themes[store.currentTheme as keyof typeof themes] || themes['Dark Void'];
-  const derived = getDerivedColors(theme);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const recordingPath = useRef<string | null>(null);
 
   useEffect(() => {
-    AudioRecord.init({
-      sampleRate: 44100,
-      channels: 1,
-      bitsPerSample: 16,
-      wavFile: 'meme_audio.wav',
-      audioSource: Platform.OS === 'android' ? 6 : undefined,
-    });
+    return () => {
+      audioRecorderPlayer.stopRecorder().catch(() => {});
+      audioRecorderPlayer.removeRecordBackListener();
+    };
   }, []);
 
   useEffect(() => {
@@ -51,54 +56,52 @@ export default function VoiceToMemeScreen() {
     }
   }, [store.isRecording]);
 
-  const requestAudioPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          { title: 'Microphone Permission', message: 'App needs mic access to record voice memes', buttonPositive: 'Allow' },
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch {
-        return false;
-      }
-    }
-    return true;
-  };
-
   const toggleRecording = async () => {
     if (store.isRecording) {
       store.setIsRecording(false);
       try {
-        const audioFile = await AudioRecord.stop();
+        const result = await audioRecorderPlayer.stopRecorder();
+        audioRecorderPlayer.removeRecordBackListener();
+        const audioFile = result || recordingPath.current;
+        console.log('[VoiceToMeme] Audio file:', audioFile);
         if (audioFile) {
           store.setRecordedAudioPath(audioFile);
           store.setIsLoadingAudioMeme(true);
-          const result = await transcribeAndGenerateMeme(audioFile);
-          store.setAudioTranscript(result.transcription);
-          store.setAudioMemeTop(result.topText);
-          store.setAudioMemeBottom(result.bottomText);
-          store.setIsLoadingAudioMeme(false);
-          generateImageFromPrompt(result.transcription || result.topText).then((uri) => {
-            if (uri) store.setAiBgBitmap(uri);
-          });
+          try {
+            const memeResult = await transcribeAndGenerateMeme(audioFile);
+            store.setAudioTranscript(memeResult.transcription);
+            store.setAudioMemeTop(memeResult.topText);
+            store.setAudioMemeBottom(memeResult.bottomText);
+            generateImageFromPrompt(memeResult.transcription || memeResult.topText).then((uri) => {
+              if (uri) store.setAiBgBitmap(uri);
+            }).catch((e) => console.warn('[VoiceToMeme] BG error:', e));
+          } catch (e) {
+            console.warn('[VoiceToMeme] Transcription error:', e);
+            Alert.alert('Erreur Transcription', 'Vérifie ta clé Gemini et ta connexion.');
+          } finally {
+            store.setIsLoadingAudioMeme(false);
+          }
+        } else {
+          Alert.alert('Erreur Audio', 'Aucun fichier enregistré');
         }
-      } catch {
+      } catch (e) {
+        console.warn('[VoiceToMeme] stop error:', e);
         store.setIsLoadingAudioMeme(false);
+        Alert.alert('Erreur', 'Arrêt enregistrement impossible');
       }
     } else {
+      const hasPerm = await requestMicPermission();
+      if (!hasPerm) { showPermissionDenied('mic'); return; }
       try {
-        const hasPerm = await requestAudioPermission();
-        if (!hasPerm) {
-          Alert.alert('Permission refusée', 'Impossible d\'enregistrer sans accès au microphone');
-          return;
-        }
-        AudioRecord.start();
+        const path = getAudioPath();
+        recordingPath.current = path;
+        await audioRecorderPlayer.startRecorder(path, undefined, true);
         store.setIsRecording(true);
+        console.log('[VoiceToMeme] Recording started:', path);
       } catch (e) {
-        console.warn('[AudioRecord] start error:', e);
+        console.warn('[VoiceToMeme] start error:', e);
         store.setIsRecording(false);
-        Alert.alert('Erreur', 'Impossible de démarrer l\'enregistrement audio');
+        Alert.alert('Erreur Micro', 'Impossible de démarrer. ' + (e instanceof Error ? e.message : ''));
       }
     }
   };
@@ -122,6 +125,7 @@ export default function VoiceToMemeScreen() {
     try {
       const uri = await generateImageFromPrompt(store.audioTranscript);
       if (uri) store.setAiBgBitmap(uri);
+      else Alert.alert('Fond IA', 'Génération échouée — Pollinations utilisé en secours au prochain essai.');
     } finally {
       store.setIsGeneratingImage(false);
     }
@@ -170,10 +174,7 @@ export default function VoiceToMemeScreen() {
       <View style={[styles.recordCard, { backgroundColor: 'rgba(29,29,29,0.85)', borderColor: 'rgba(229,229,229,0.08)' }]}>
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
-            style={[
-              styles.micBtn,
-              { backgroundColor: store.isRecording ? '#EF4444' : '#FFFFFF' },
-            ]}
+            style={[styles.micBtn, { backgroundColor: store.isRecording ? '#EF4444' : '#FFFFFF' }]}
             onPress={toggleRecording}
           >
             <Text style={{ fontSize: 32, color: store.isRecording ? '#fff' : '#0A0A0A' }}>
@@ -184,7 +185,9 @@ export default function VoiceToMemeScreen() {
         <Text style={[styles.micLabel, { color: '#FFFFFF' }]}>
           {store.isRecording
             ? "🔴 Enregistrement en cours (Appuie pour arreter)"
-            : "Toucher pour enregistrer de l'audio"}
+            : store.isLoadingAudioMeme
+              ? "⏳ Analyse Gemini en cours..."
+              : "Toucher pour enregistrer de l'audio"}
         </Text>
 
         <Text style={[styles.mockTitle, { color: '#C2C2C2' }]}>
@@ -213,11 +216,7 @@ export default function VoiceToMemeScreen() {
       />
 
       {(store.audioTranscript.trim() || store.audioMemeTop) && (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleGenerateVoiceBg}
-          disabled={store.isGeneratingImage}
-        >
+        <TouchableOpacity activeOpacity={0.85} onPress={handleGenerateVoiceBg} disabled={store.isGeneratingImage}>
           <LinearGradient
             colors={['#10B981', '#059669']}
             start={{ x: 0, y: 0 }}
@@ -242,31 +241,13 @@ export default function VoiceToMemeScreen() {
             customBgUri={store.aiBgBitmap}
           />
           <View style={styles.actions}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSave}
-              style={styles.actionBtnWrapper}
-            >
-              <LinearGradient
-                colors={['#FFFFFF', '#E5E5E5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionBtnGrad}
-              >
+            <TouchableOpacity activeOpacity={0.85} onPress={handleSave} style={styles.actionBtnWrapper}>
+              <LinearGradient colors={['#FFFFFF', '#E5E5E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
                 <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>💾 {t('save', store.currentLanguage)}</Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleShare}
-              style={styles.actionBtnWrapper}
-            >
-              <LinearGradient
-                colors={['#1D1D1D', '#2D2D2D']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionBtnGrad}
-              >
+            <TouchableOpacity activeOpacity={0.85} onPress={handleShare} style={styles.actionBtnWrapper}>
+              <LinearGradient colors={['#1D1D1D', '#2D2D2D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
                 <Text style={[styles.actionBtnText, { color: '#E5E5E5' }]}>↗️ {t('share', store.currentLanguage)}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -284,75 +265,26 @@ export default function VoiceToMemeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 16, paddingBottom: 40 },
-  aiCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 16,
-    overflow: 'hidden',
-  },
+  aiCard: { borderRadius: 24, borderWidth: 1, padding: 16, overflow: 'hidden' },
   aiTitle: { fontSize: 14, fontWeight: '600' },
   aiSubtitle: { fontSize: 11, marginTop: 2 },
-  descCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 16,
-  },
+  descCard: { borderRadius: 24, borderWidth: 1, padding: 16 },
   descTitle: { fontSize: 16, fontWeight: '700' },
   descText: { fontSize: 12, lineHeight: 16, marginTop: 6, color: '#C2C2C2' },
-  recordCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-    alignItems: 'center',
-    gap: 12,
-  },
-  micBtn: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  recordCard: { borderRadius: 24, borderWidth: 1, padding: 20, alignItems: 'center', gap: 12 },
+  micBtn: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center' },
   micLabel: { fontSize: 13, fontWeight: '700' },
   mockTitle: { fontSize: 13, fontWeight: '600', marginTop: 8 },
   mockRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  mockChip: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    flex: 1,
-    minWidth: '45%',
-    maxWidth: '48%',
-  },
-  mockText: { fontSize: 10, lineHeight: 14, maxLines: 2 },
-  transcriptInput: {
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 12,
-    fontSize: 14,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  generateBtn: {
-    borderRadius: 9999,
-    height: 48,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
+  mockChip: { borderWidth: 1, borderRadius: 8, padding: 8, flex: 1, minWidth: '45%', maxWidth: '48%' },
+  mockText: { fontSize: 10, lineHeight: 14 },
+  transcriptInput: { borderRadius: 10, borderWidth: 1, padding: 12, fontSize: 14, minHeight: 60, textAlignVertical: 'top' },
+  generateBtn: { borderRadius: 9999, height: 48, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   generateBtnIcon: { fontSize: 18 },
   generateBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
   previewLabel: { fontSize: 13, fontWeight: '600', marginTop: 4 },
   actions: { flexDirection: 'row', gap: 12 },
   actionBtnWrapper: { flex: 1, borderRadius: 9999, overflow: 'hidden' },
-  actionBtnGrad: {
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(229,229,229,0.15)',
-  },
+  actionBtnGrad: { height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 9999, borderWidth: 1, borderColor: 'rgba(229,229,229,0.15)' },
   actionBtnText: { fontSize: 14, fontWeight: '700' },
 });

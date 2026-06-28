@@ -22,33 +22,26 @@ const FALLBACK_GIFS: GiphyResult[] = [
 ];
 
 export async function searchGif(query: string): Promise<GiphyResult | null> {
-  if (!GIPHY_API_KEY) {
-    const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
-    return FALLBACK_GIFS[idx];
-  }
   try {
     const res = await fetch(
       `${BASE_URL}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=1&rating=g`,
     );
-    if (!res.ok) {
-      const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
-      return FALLBACK_GIFS[idx];
+    if (res.ok) {
+      const json = await res.json();
+      const gif = json.data?.[0];
+      if (gif && gif.images?.original?.url) {
+        return {
+          url: gif.images.original.url,
+          previewUrl: gif.images.fixed_height?.url ?? gif.images.original.url,
+          title: gif.title ?? '',
+        };
+      }
     }
-    const json = await res.json();
-    const gif = json.data?.[0];
-    if (!gif) {
-      const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
-      return FALLBACK_GIFS[idx];
-    }
-    return {
-      url: gif.images?.original?.url ?? '',
-      previewUrl: gif.images?.fixed_height?.url ?? '',
-      title: gif.title ?? '',
-    };
   } catch {
-    const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
-    return FALLBACK_GIFS[idx];
+    // fallback below
   }
+  const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
+  return FALLBACK_GIFS[idx];
 }
 
 function hashCode(s: string): number {

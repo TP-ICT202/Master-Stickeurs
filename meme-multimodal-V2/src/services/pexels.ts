@@ -1,4 +1,6 @@
-const API_KEY = ''; // Mettre votre clé Pexels ici (gratuite sur pexels.com/api)
+import { PEXELS_API_KEY } from '../config';
+
+const API_KEY = PEXELS_API_KEY;
 
 export interface PexelsVideo {
   url: string;

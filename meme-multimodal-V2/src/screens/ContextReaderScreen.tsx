@@ -29,6 +29,7 @@ export default function ContextReaderScreen() {
 
       const uri = await generateImageFromPrompt(store.contextInput);
       if (uri) store.setAiBgBitmap(uri);
+      else Alert.alert('Fond IA', 'Pollinations utilisé en secours au prochain essai.');
     } finally {
       store.setIsLoadingTextMeme(false);
     }

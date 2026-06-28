@@ -1,6 +1,6 @@
 -- Merging decision tree log ---
 application
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:10:5-31:19
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:11:5-32:19
 MERGED from [:react-native-image-picker] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-image-picker/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:7:5-17:19
 MERGED from [:react-native-image-picker] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-image-picker/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:7:5-17:19
 MERGED from [:react-native-share] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-share/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:7:5-17:19
@@ -22,27 +22,27 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/tchin
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.8.0] /home/tchinda/.gradle/caches/transforms-3/f2baed40d8eedee881a8d45aabcd79f4/transformed/core-1.8.0/AndroidManifest.xml:24:18-86
 	android:supportsRtl
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:18:7-33
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:19:7-33
 	android:label
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:12:7-39
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:13:7-39
 	android:roundIcon
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:14:7-52
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:15:7-52
 	android:icon
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:13:7-41
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:14:7-41
 	android:allowBackup
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:15:7-34
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:16:7-34
 	android:theme
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:16:7-38
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:17:7-38
 	android:name
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:11:7-38
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:12:7-38
 	android:usesCleartextTraffic
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:17:7-61
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:18:7-61
 manifest
-ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
 MERGED from [:react-native-async-storage_async-storage] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/@react-native-async-storage/async-storage/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:2:1-7:12
 MERGED from [:react-native-audio-recorder-player] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-audio-recorder-player/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:2:1-10:12
 MERGED from [:react-native-fs] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-fs/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:2:1-9:12
@@ -105,20 +105,20 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/tchin
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/tchinda/.gradle/caches/transforms-3/08d79e820676c24a17bdfa95ad0cffd6/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
 MERGED from [com.facebook.fresco:fbcore:2.5.0] /home/tchinda/.gradle/caches/transforms-3/c9c0b82f3987a39ae15e48431eb657f9/transformed/fbcore-2.5.0/AndroidManifest.xml:2:1-9:12
 MERGED from [androidx.annotation:annotation-experimental:1.1.0] /home/tchinda/.gradle/caches/transforms-3/a304e00ee14be5578f1238b3a5f2d616/transformed/annotation-experimental-1.1.0/AndroidManifest.xml:17:1-24:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
-INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
+INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
 	package
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
 	android:versionName
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
 	android:versionCode
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-32:12
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:1-33:12
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
 	xmlns:android
 		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:1:11-69
@@ -154,6 +154,12 @@ uses-permission#android.permission.READ_MEDIA_IMAGES
 ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:8:5-76
 	android:name
 		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:8:22-73
+uses-feature#android.hardware.camera
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:9:5-85
+	android:required
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:9:58-82
+	android:name
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:9:19-57
 uses-sdk
 INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
@@ -293,29 +299,29 @@ INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/androi
 		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
 		INJECTED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml
 activity#com.memegenai.MainActivity
-ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:19:7-30:18
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:20:7-31:18
 	android:label
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:21:9-41
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:22:9-41
 	android:launchMode
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:23:9-40
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:24:9-40
 	android:windowSoftInputMode
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:24:9-51
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:25:9-51
 	android:exported
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:25:9-32
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:26:9-32
 	android:configChanges
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:22:9-118
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:23:9-118
 	android:name
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:20:9-37
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:21:9-37
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:26:9-29:25
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:27:9-30:25
 action#android.intent.action.MAIN
-ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:27:13-65
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:28:13-65
 	android:name
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:27:21-62
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:28:21-62
 category#android.intent.category.LAUNCHER
-ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:28:13-73
+ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:29:13-73
 	android:name
-		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:28:23-70
+		ADDED from /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/src/main/AndroidManifest.xml:29:23-70
 provider#com.imagepicker.ImagePickerProvider
 ADDED from [:react-native-image-picker] /home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/node_modules/react-native-image-picker/android/build/intermediates/merged_manifest/release/AndroidManifest.xml:8:9-16:20
 	android:grantUriPermissions

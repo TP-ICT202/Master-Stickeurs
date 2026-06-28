@@ -21,14 +21,14 @@ export const backgroundPresets: BackgroundPreset[] = [
 // AI-generated background image URLs for meme backgrounds
 // These are context-adaptive abstract images used when no custom AI bg is set
 export const aiBackgroundImages: string[] = [
-  'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682260-96773eb01377?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682257-83f3e75f4d4a?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682240-d0c1e3e06b7c?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682224-0e6bf3a7e1c5?w=400&q=80',
-  'https://images.unsplash.com/photo-1557682263-6c3a6e3b3d3f?w=400&q=80',
-  'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&q=80',
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80',
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=512&q=80',
+  'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=512&q=80',
+  'https://images.unsplash.com/photo-1557683316-973673baf926?w=512&q=80',
+  'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=512&q=80',
+  'https://images.unsplash.com/photo-1558591710-4bcf4fda3245?w=512&q=80',
+  'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=512&q=80',
+  'https://images.unsplash.com/photo-1557682260-96773eb01377?w=512&q=80',
+  'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=512&q=80',
+  'https://images.unsplash.com/photo-1557682257-83f3e75f4d4a?w=512&q=80',
+  'https://images.unsplash.com/photo-1557682240-d0c1e3e06b7c?w=512&q=80',
 ];

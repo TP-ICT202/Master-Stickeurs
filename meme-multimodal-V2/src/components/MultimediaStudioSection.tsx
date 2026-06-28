@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated, TextInput, ScrollView, Alert, Image,
+  View, Text, StyleSheet, TouchableOpacity, Animated, TextInput, ScrollView, Alert, Image, Linking,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useStore } from '../store/useStore';
@@ -8,10 +8,11 @@ import { themes, getDerivedColors } from '../theme/colors';
 import { t } from '../utils/i18n';
 import {
   generateStickerSuggestion, generateGifSearchQuery, generateVideoStoryboard,
+  generateStickerFromImage, generateGifQueryFromImage, generateVideoQueryFromImage,
   removeImageBackground,
 } from '../services/gemini';
-
-import { searchGif } from '../services/giphy';
+import { searchGif } from '../services/klipy';
+import { searchShortVideo } from '../services/pexels';
 import { saveMeme } from '../services/database';
 
 const moods = ['LOL', 'PANIQUE', 'COLERE', 'DANSE'] as const;
@@ -66,10 +67,14 @@ function StickerContent({ contextText }: { contextText: string }) {
       if (store.statusImagePath) {
         const uri = await removeImageBackground(store.statusImagePath);
         if (uri) setExtractedImageUri(uri);
+        const [emoji, text] = await generateStickerFromImage(store.statusImagePath);
+        store.setStickerEmoji(emoji);
+        store.setStickerText(text);
+      } else {
+        const [emoji, text] = await generateStickerSuggestion(contextText);
+        store.setStickerEmoji(emoji);
+        store.setStickerText(text);
       }
-      const [emoji, text] = await generateStickerSuggestion(contextText);
-      store.setStickerEmoji(emoji);
-      store.setStickerText(text);
     } finally {
       store.setIsGeneratingSticker(false);
     }
@@ -332,7 +337,9 @@ function GifContent({ contextText }: { contextText: string }) {
     store.setIsSearchingGif(true);
     setGifUrl(null);
     try {
-      const q = await generateGifSearchQuery(contextText);
+      const q = store.statusImagePath
+        ? await generateGifQueryFromImage(store.statusImagePath)
+        : await generateGifSearchQuery(contextText);
       store.setGifQuery(q);
       const gif = await searchGif(q);
       if (gif?.url) setGifUrl(gif.url);
@@ -463,14 +470,26 @@ function VideoContent({ contextText }: { contextText: string }) {
     return () => { zoomAnim.setValue(1); panXAnim.setValue(0); panYAnim.setValue(0); };
   }, [store.videoZoomSpeed, hasImage]);
 
-  const handleGeneratePuterVideo = async () => {
+  const handleGenerateVideo = async () => {
     if (!contextText.trim() && !store.statusImagePath) return;
     setIsGeneratingVideo(true);
+    setVideoUrl(null);
     try {
-      const { puterTxt2vid } = require('../services/puter');
-      const prompt = store.videoTitle || contextText || 'Funny meme video';
-      const result = await puterTxt2vid(prompt, store.statusImagePath || undefined);
-      if (result) setVideoUrl(result);
+      let query = contextText || 'funny celebration';
+      if (store.statusImagePath) {
+        const [title, punchline] = await generateVideoQueryFromImage(store.statusImagePath);
+        store.setVideoTitle(title);
+        store.setVideoPunchline(punchline);
+        query = punchline || title;
+      } else {
+        const [title, punchline] = await generateVideoStoryboard(contextText);
+        store.setVideoTitle(title);
+        store.setVideoPunchline(punchline);
+        query = punchline || title;
+      }
+      const video = await searchShortVideo(query);
+      if (video?.url) setVideoUrl(video.url);
+      else Alert.alert('Vidéo', 'Aucune vidéo Pexels trouvée pour cette recherche.');
     } catch (e) {
       console.warn('[Video] generate error:', e);
     } finally {
@@ -520,14 +539,14 @@ function VideoContent({ contextText }: { contextText: string }) {
       <View style={styles.actionRow}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={handleGeneratePuterVideo}
+          onPress={handleGenerateVideo}
           disabled={isGeneratingVideo}
           style={{ borderRadius: 9999, overflow: 'hidden', flex: 1 }}
         >
           <LinearGradient colors={['#EF4444', '#DC2626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {isGeneratingVideo ? '...' : '🎬 GÉNÉRER VIDÉO PUTER'}
+              {isGeneratingVideo ? '...' : '🎬 CHARGER SHORT VIDÉO'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -537,8 +556,14 @@ function VideoContent({ contextText }: { contextText: string }) {
       </View>
 
       {videoUrl ? (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
-          <Image source={{ uri: videoUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>✅ Vidéo prête</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
+            style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800' }}>▶ LIRE LA VIDÉO</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>

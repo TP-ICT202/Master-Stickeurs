@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated, PanResponder, Dimensions, Image,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated, PanResponder, Dimensions, Image, Linking, Platform,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useStore } from '../store/useStore';
@@ -8,8 +8,13 @@ import { themes, getDerivedColors } from '../theme/colors';
 import { t } from '../utils/i18n';
 import MemeCardPreview from '../components/MemeCardPreview';
 import MultimediaStudioSection from '../components/MultimediaStudioSection';
-import { analyzeImageForMeme, generateGifSearchQuery, removeImageBackground } from '../services/gemini';
-import { searchGif } from '../services/giphy';
+import {
+  analyzeImageForMeme, generateGifSearchQuery, removeImageBackground,
+  generateStickerFromImage, generateGifQueryFromImage, generateVideoQueryFromImage,
+} from '../services/gemini';
+import { searchGif } from '../services/klipy';
+import { searchShortVideo } from '../services/pexels';
+import { requestCameraPermission, requestGalleryPermission, showPermissionDenied } from '../utils/permissions';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { saveMeme } from '../services/database';
 import { shareMeme } from '../utils/memeSaver';
@@ -180,6 +185,19 @@ function StickerContent() {
         setIsExtracting(false);
       }).catch(() => setIsExtracting(false));
     }
+  }, [hasImage]);
+
+  useEffect(() => {
+    if (!hasImage) return;
+    store.setIsGeneratingSticker(true);
+    generateStickerFromImage(store.statusImagePath!).then(([emoji, text]) => {
+      store.setStickerEmoji(emoji);
+      store.setStickerText(text);
+    }).catch((e) => {
+      console.warn('[StickerContent] Generation error:', e);
+      store.setStickerEmoji('🔥');
+      store.setStickerText("C'EST L'IMAGE !");
+    }).finally(() => store.setIsGeneratingSticker(false));
   }, [hasImage]);
 
   useEffect(() => {
@@ -361,11 +379,31 @@ function GifContent() {
     return () => { kenScale.setValue(1); kenX.setValue(0); kenY.setValue(0); };
   }, [store.gifPlaybackSpeed, hasImage]);
 
+  useEffect(() => {
+    if (!hasImage) return;
+    store.setIsSearchingGif(true);
+    setGifUrl(null);
+    generateGifQueryFromImage(store.statusImagePath!).then((q) => {
+      store.setGifQuery(q);
+      return searchGif(q);
+    }).then((gif) => {
+      if (gif?.url) setGifUrl(gif.url);
+    }).catch((e) => {
+      console.warn('[GifContent] Generation error:', e);
+      store.setGifQuery('funny reaction');
+      searchGif('funny reaction').then((gif) => {
+        if (gif?.url) setGifUrl(gif.url);
+      });
+    }).finally(() => store.setIsSearchingGif(false));
+  }, [hasImage]);
+
   const handleGenerate = async () => {
     store.setIsSearchingGif(true);
     setGifUrl(null);
     try {
-      const q = await generateGifSearchQuery(store.contextInput);
+      const q = store.statusImagePath
+        ? await generateGifQueryFromImage(store.statusImagePath)
+        : await generateGifSearchQuery(store.contextInput || store.selectedGifMood);
       store.setGifQuery(q);
       const gif = await searchGif(q);
       if (gif?.url) setGifUrl(gif.url);
@@ -482,6 +520,22 @@ function VideoContent() {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   useEffect(() => {
+    if (!hasImage || !store.statusImagePath) return;
+    store.setIsGeneratingVideo(true);
+    setVideoUrl(null);
+    generateVideoQueryFromImage(store.statusImagePath).then(async ([title, punchline]) => {
+      store.setVideoTitle(title);
+      store.setVideoPunchline(punchline);
+      const video = await searchShortVideo(punchline || title || 'funny reaction');
+      if (video?.url) setVideoUrl(video.url);
+    }).catch((e) => {
+      console.warn('[VideoContent] Generation error:', e);
+      store.setVideoTitle('ALERTE');
+      store.setVideoPunchline('C\'EST CHAUD !');
+    }).finally(() => store.setIsGeneratingVideo(false));
+  }, [hasImage]);
+
+  useEffect(() => {
     if (!hasImage) return;
     const dur = 4000 / (store.videoZoomSpeed || 1);
     Animated.loop(
@@ -501,16 +555,25 @@ function VideoContent() {
     return () => { zoomAnim.setValue(1); panXAnim.setValue(0); panYAnim.setValue(0); };
   }, [store.videoZoomSpeed, hasImage]);
 
-  const handleGeneratePuterVideo = async () => {
-    if (!store.contextInput.trim() && !store.statusImagePath) return;
+  const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
+    setVideoUrl(null);
     try {
-      const { puterTxt2vid } = require('../services/puter');
-      const prompt = store.videoTitle || store.contextInput || 'Funny meme video';
-      const result = await puterTxt2vid(prompt, store.statusImagePath || undefined);
-      if (result) setVideoUrl(result);
+      const query = store.videoPunchline || store.videoTitle || store.contextInput || 'funny celebration';
+      if (store.statusImagePath) {
+        const [title, punchline] = await generateVideoQueryFromImage(store.statusImagePath);
+        store.setVideoTitle(title);
+        store.setVideoPunchline(punchline);
+      }
+      const video = await searchShortVideo(query);
+      if (video?.url) {
+        setVideoUrl(video.url);
+      } else {
+        Alert.alert('Vidéo', 'Aucune vidéo trouvée. Vérifie la clé Pexels dans config.ts');
+      }
     } catch (e) {
       console.warn('[Video] generate error:', e);
+      Alert.alert('Erreur', 'Impossible de charger la vidéo');
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -560,14 +623,14 @@ function VideoContent() {
       <View style={styles.actionRow}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={handleGeneratePuterVideo}
+          onPress={handleGenerateVideo}
           disabled={isGeneratingVideo}
           style={{ borderRadius: 9999, overflow: 'hidden', flex: 1 }}
         >
           <LinearGradient colors={['#EF4444', '#DC2626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {isGeneratingVideo ? '...' : '🎬 GÉNÉRER VIDÉO PUTER'}
+              {isGeneratingVideo ? '...' : '🎬 CHARGER SHORT VIDÉO'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -577,8 +640,14 @@ function VideoContent() {
       </View>
 
       {videoUrl ? (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
-          <Image source={{ uri: videoUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>✅ Vidéo prête</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
+            style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800' }}>▶ LIRE LA VIDÉO</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
@@ -615,20 +684,62 @@ export default function StatusRemixerScreen() {
     }).finally(() => store.setIsAnalyzingStatusImage(false));
   };
 
-  const handlePickImage = () => {
-    launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (response) => {
-      if (response.didCancel || response.errorCode) return;
-      const uri = response.assets?.[0]?.uri;
-      if (uri) processImage(uri);
-    });
+  const handlePickImage = async () => {
+    const ok = await requestGalleryPermission();
+    if (!ok) { showPermissionDenied('gallery'); return; }
+    try {
+      launchImageLibrary(
+        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
+        (response) => {
+          if (response.didCancel) {
+            console.log('[StatusRemixer] Image selection cancelled');
+            return;
+          }
+          if (response.errorCode) {
+            console.warn('[StatusRemixer] Image picker error:', response.errorMessage);
+            Alert.alert('❌ Erreur Galerie', response.errorMessage || 'Impossible d\'accéder à la galerie');
+            return;
+          }
+          const uri = response.assets?.[0]?.uri;
+          if (uri) {
+            console.log('[StatusRemixer] Image selected:', uri);
+            processImage(uri);
+          }
+        },
+      );
+    } catch (e) {
+      console.warn('[StatusRemixer] launchImageLibrary error:', e);
+      Alert.alert('❌ Erreur', 'Impossible d\'ouvrir la galerie');
+    }
   };
 
-  const handleTakePhoto = () => {
-    launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: false }, (response) => {
-      if (response.didCancel || response.errorCode) return;
-      const uri = response.assets?.[0]?.uri;
-      if (uri) processImage(uri);
-    });
+  const handleTakePhoto = async () => {
+    const ok = await requestCameraPermission();
+    if (!ok) { showPermissionDenied('camera'); return; }
+    try {
+      launchCamera(
+        { mediaType: 'photo', quality: 0.8, saveToPhotos: false, cameraType: 'back' },
+        (response) => {
+          if (response.didCancel) {
+            console.log('[StatusRemixer] Camera cancelled');
+            return;
+          }
+          if (response.errorCode) {
+            console.warn('[StatusRemixer] Camera error:', response.errorCode, response.errorMessage);
+            Alert.alert('❌ Erreur Caméra', response.errorMessage || 'Impossible d\'accéder à la caméra. Vérifie les permissions.');
+            return;
+          }
+          const uri = response.assets?.[0]?.uri;
+          if (uri) {
+            console.log('[StatusRemixer] Photo taken:', uri);
+            processImage(uri);
+          }
+        },
+      );
+    } catch (e) {
+      console.warn('[StatusRemixer] launchCamera error:', e);
+      Alert.alert('❌ Erreur Caméra', (e instanceof Error ? e.message : 'Impossible de lancer la caméra'));
+    }
   };
 
   const handleAnalyze = async () => {
