@@ -173,14 +173,14 @@ Le serveur démarre sur `http://localhost:3000`.
 
 | Noms/Prenoms | Matricule |
 |--------|---------------|
-| 1 : **KENGNE** | ... |
-| 2 : **EMMANUEL** | ... |
-| 3 : **TChinda Fogang Pierre Legrand** | 24H2001 |
-| 4 : **JOHNY** | ... |
-| 5 : **ULRICH** | ... |
-| 6 : **MANY** | ... |
-| 7 : **ARIANE** | ... |
-| 8 : **JUVENAL** | ... |
+| 1 : **KENGNE TSHIENEGHOM THERESE VIANNEY** |24H2096|
+| 2 : **BENZO NGOUH EMMANUELLE** | 24F2625 |
+| 3 : **TCHINDA FOGANG PIERRE LEGRAND** | 24H2001 |
+| 4 : **KITIO EMMANUEL** | 24H2181|
+| 5 : **OMGBA BIDJA ULRICH JORDAN** | 24H2246 |
+| 6 : **MANI MBASSI ALEXANDRE JOEL** | 24G2712 |
+| 7 : **YANGO MBECHIN ARIANE** | 23U2249 |
+| 8 : **SINENG KENGNI JUVENAL** | 24H2194 |
 
 --- 
 | Binôme | Responsabilité |
