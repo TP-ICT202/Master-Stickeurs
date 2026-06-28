@@ -51,6 +51,8 @@ android {
     }
 }
 
+apply from: "../../node_modules/react-native-config/android/dotenv.gradle"
+
 dependencies {
     implementation("com.facebook.react:react-android")
 
