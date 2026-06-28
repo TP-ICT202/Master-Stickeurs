@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { FileText, Mic, Image, LayoutGrid, Settings, Lightbulb, Menu } from 'lucide-react-native';
 import { useStore } from './store/useStore';
 import { themes, type ThemeProperties, splashGradientColors, splashSpotlightColor, getDerivedColors } from './theme/colors';
 import { t } from './utils/i18n';
@@ -13,16 +14,17 @@ import VoiceToMemeScreen from './screens/VoiceToMemeScreen';
 import StatusRemixerScreen from './screens/StatusRemixerScreen';
 import MemeLibraryScreen from './screens/MemeLibraryScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import FloatingEmojiBackground from './components/FloatingEmojiBackground';
 
 const DRAWER_WIDTH = 280;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const tabIcons: Record<string, { icon: string; labelKey: string }> = {
-  TEXT: { icon: '📝', labelKey: 'tab_text' },
-  AUDIO: { icon: '🎤', labelKey: 'tab_audio' },
-  IMAGE: { icon: '📷', labelKey: 'tab_photo' },
-  GALLERY: { icon: '🖼️', labelKey: 'tab_archive' },
-  SETTINGS: { icon: '⚙️', labelKey: 'tab_settings' },
+const tabIcons: Record<string, { icon: string; labelKey: string; Lucide: React.ElementType }> = {
+  TEXT: { icon: '', labelKey: 'tab_text', Lucide: FileText },
+  AUDIO: { icon: '', labelKey: 'tab_audio', Lucide: Mic },
+  IMAGE: { icon: '', labelKey: 'tab_photo', Lucide: Image },
+  GALLERY: { icon: '', labelKey: 'tab_archive', Lucide: LayoutGrid },
+  SETTINGS: { icon: '', labelKey: 'tab_settings', Lucide: Settings },
 };
 
 function DimensionBackground({ theme, children }: { theme: ThemeProperties; children: React.ReactNode }) {
@@ -67,7 +69,7 @@ function MemeHeader({ onMenuClick }: { onMenuClick: () => void }) {
     <View style={[styles.headerContainer, { borderBottomColor: derived.borderColor }]}>
       <View style={styles.headerMain}>
         <TouchableOpacity onPress={onMenuClick} style={styles.menuBtn}>
-          <Text style={[styles.menuIcon, { color: derived.textColor }]}>☰</Text>
+          <Menu size={20} color={derived.textColor} strokeWidth={2} />
         </TouchableOpacity>
         <Text style={[styles.headerLight, { color: derived.textColor }]}>MemeGen </Text>
         <Text style={[styles.headerBold, { color: derived.textColor }]}>AI</Text>
@@ -101,9 +103,16 @@ function MemeBottomNavigation({ selectedTab, onSelect }: { selectedTab: string; 
                 ]}
                 onPress={() => onSelect(id)}
               >
-                <Text style={[styles.bottomTabIcon, { color: isSelected ? '#FFFFFF' : '#797979' }]}>
-                  {tabIcons[id]?.icon || '📄'}
-                </Text>
+                {(() => {
+                  const LucideIcon = tabIcons[id]?.Lucide;
+                  return LucideIcon ? (
+                    <LucideIcon size={18} color={isSelected ? theme.accentColor : '#797979'} strokeWidth={isSelected ? 2.5 : 1.5} />
+                  ) : (
+                    <Text style={[styles.bottomTabIcon, { color: isSelected ? '#FFFFFF' : '#797979' }]}>
+                      {tabIcons[id]?.icon || ''}
+                    </Text>
+                  );
+                })()}
                 <Text style={[
                   styles.bottomTabText,
                   { color: isSelected ? '#FFFFFF' : '#797979', fontWeight: isSelected ? '700' : '400' },
@@ -154,9 +163,19 @@ export default function App() {
 
   if (showSplash) {
     if (!showLoading) {
-      return <SplashScreen onEnter={() => setShowLoading(true)} />;
+      return (
+        <View style={{ flex: 1 }}>
+          <FloatingEmojiBackground />
+          <SplashScreen onEnter={() => setShowLoading(true)} />
+        </View>
+      );
     }
-    return <WelcomeLoadingScreen onComplete={dismissSplash} />;
+    return (
+      <View style={{ flex: 1 }}>
+        <FloatingEmojiBackground />
+        <WelcomeLoadingScreen onComplete={dismissSplash} />
+      </View>
+    );
   }
 
   const renderScreen = () => {
@@ -173,10 +192,11 @@ export default function App() {
   return (
     <DimensionBackground theme={theme}>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
+      <FloatingEmojiBackground />
       <View style={styles.root}>
         <MemeHeader onMenuClick={openDrawer} />
         <View style={styles.contentArea}>
-          <Animated.View key={currentTab} style={{ flex: 1 }}>
+          <Animated.View style={{ flex: 1 }}>
             {renderScreen()}
           </Animated.View>
         </View>
@@ -210,7 +230,7 @@ export default function App() {
           <View style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
               <View style={[styles.drawerLogo, { backgroundColor: theme.accentColor + '25', borderColor: theme.accentColor + '50' }]}>
-                <Text style={{ fontSize: 20 }}>💡</Text>
+                <Lightbulb size={20} color={theme.accentColor} strokeWidth={1.5} />
               </View>
               <View>
                 <Text style={[styles.drawerTitle, { color: derived.textColor }]}>MemeGen AI</Text>
@@ -237,7 +257,14 @@ export default function App() {
                   ]}
                   onPress={() => handleTabSelect(id)}
                 >
-                  <Text style={{ fontSize: 20, width: 28 }}>{tabIcons[id]?.icon || '📄'}</Text>
+                  {(() => {
+                    const LucideIcon = tabIcons[id]?.Lucide;
+                    return LucideIcon ? (
+                      <LucideIcon size={20} color={isSelected ? theme.accentColor : derived.secondaryTextColor} strokeWidth={isSelected ? 2.5 : 1.5} />
+                    ) : (
+                      <Text style={{ fontSize: 20, width: 28 }}>{tabIcons[id]?.icon || ''}</Text>
+                    );
+                  })()}
                   <Text
                     style={[
                       styles.drawerItemText,

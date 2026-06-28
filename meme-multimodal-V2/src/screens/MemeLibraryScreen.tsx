@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, FlatList,
   Modal, Dimensions, Animated, PanResponder, Image,
 } from 'react-native';
+import { Folder, Brain, Palette, Film, Tv, Image as ImageIcon, Trash2, X, Download, Share2 } from 'lucide-react-native';
 import RNFS from 'react-native-fs';
 import ViewShot from 'react-native-view-shot';
 import { useStore } from '../store/useStore';
@@ -14,8 +15,8 @@ import type { MemeEntity } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const filters = ['TOUT', 'MEME', 'STICKER', 'GIF', 'VIDEO'] as const;
-const filterEmojis: Record<string, string> = {
-  TOUT: '📁', MEME: '🧠', STICKER: '🎨', GIF: '🎬', VIDEO: '📺',
+const filterIcons: Record<string, React.ElementType> = {
+  TOUT: Folder, MEME: Brain, STICKER: Palette, GIF: Film, VIDEO: Tv,
 };
 
 function FullPreviewModal({
@@ -101,7 +102,7 @@ function FullPreviewModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.92)' }]}>
         <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
-          <Text style={styles.modalCloseText}>✕</Text>
+          <X size={20} color="#fff" strokeWidth={2} />
         </TouchableOpacity>
         <Text style={styles.modalCounter}>{currentIdx + 1} / {memes.length}</Text>
 
@@ -130,15 +131,15 @@ function FullPreviewModal({
 
         <View style={styles.modalActions}>
           <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: '#10B981' }]} onPress={handleDownload}>
-            <Text style={styles.modalActionIcon}>⬇</Text>
-            <Text style={styles.modalActionLabel}>Télécharger</Text>
+            <Download size={18} color="#fff" strokeWidth={2} />
+            <Text style={styles.modalActionLabel}>Telecharger</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: '#3B82F6' }]} onPress={handleShare}>
-            <Text style={styles.modalActionIcon}>↗</Text>
+            <Share2 size={18} color="#fff" strokeWidth={2} />
             <Text style={styles.modalActionLabel}>Partager</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: '#EF4444' }]} onPress={handleDelete}>
-            <Text style={styles.modalActionIcon}>✕</Text>
+            <Trash2 size={18} color="#fff" strokeWidth={2} />
             <Text style={styles.modalActionLabel}>Supprimer</Text>
           </TouchableOpacity>
         </View>
@@ -256,19 +257,19 @@ export default function MemeLibraryScreen() {
             style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
             onPress={() => handleDownload(item)}
           >
-            <Text style={styles.actionBtnIcon}>⬇</Text>
+            <Download size={14} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}
             onPress={() => handleShareMeme(item)}
           >
-            <Text style={styles.actionBtnIcon}>↗</Text>
+            <Share2 size={14} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
             onPress={() => handleDelete(item)}
           >
-            <Text style={styles.actionBtnIcon}>✕</Text>
+            <Trash2 size={14} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
         </View>
         <Text style={[styles.cardType, { color: derived.secondaryTextColor }]}>
@@ -284,7 +285,7 @@ export default function MemeLibraryScreen() {
         <View style={[styles.aiCard, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
           <Text style={{ color: derived.secondaryTextColor, fontSize: 12 }}>Meme Library Archive</Text>
         </View>
-        <Text style={{ fontSize: 64, opacity: 0.5, marginTop: 32 }}>🖼️</Text>
+        <ImageIcon size={64} color={derived.secondaryTextColor} style={{ opacity: 0.5, marginTop: 32 }} strokeWidth={1} />
         <Text style={[styles.emptyText, { color: derived.textColor }]}>
           {t('no_memes', store.currentLanguage)}
         </Text>
@@ -312,9 +313,15 @@ export default function MemeLibraryScreen() {
             ]}
             onPress={() => setActiveFilter(filter)}
           >
-            <Text style={[styles.filterText, { color: activeFilter === filter ? '#fff' : derived.textColor }]}>
-              {filterEmojis[filter]} {filter === 'TOUT' ? t('all', store.currentLanguage) : filter === 'MEME' ? t('meme', store.currentLanguage) : filter}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {(() => {
+                const FI = filterIcons[filter];
+                return FI ? <FI size={14} color={activeFilter === filter ? '#fff' : derived.textColor} strokeWidth={1.5} /> : null;
+              })()}
+              <Text style={[styles.filterText, { color: activeFilter === filter ? '#fff' : derived.textColor }]}>
+                {filter === 'TOUT' ? t('all', store.currentLanguage) : filter === 'MEME' ? t('meme', store.currentLanguage) : filter}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>

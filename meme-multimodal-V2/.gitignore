@@ -15,6 +15,7 @@ ios/.xcode.env.local
 # Android
 *.apk
 *.aab
+*.zip
 android/app/build/
 *.iml
 .gradle

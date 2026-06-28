@@ -1,4 +1,0 @@
-#Sun Jun 28 08:39:53 WAT 2026
-base.0=/home/tchinda/Documents/Stickeurs Master/meme-multimodal-V2/android/app/build/intermediates/dex/release/mergeDexRelease/classes.dex
-renamed.0=classes.dex
-path.0=classes.dex

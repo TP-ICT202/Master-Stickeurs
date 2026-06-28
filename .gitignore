@@ -1,0 +1,47 @@
+## Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## React Native
+meme-multimodal-V2/android/app/build/
+meme-multimodal-V2/android/.gradle/
+meme-multimodal-V2/android/build/
+meme-multimodal-V2/android/app/build/generated/
+meme-multimodal-V2/ios/build/
+meme-multimodal-V2/ios/Pods/
+
+## Metro bundler
+meme-multimodal-V2/.metro-health-check*
+
+## APK
+*.apk
+
+## Environment
+.env
+.env.local
+.env.production
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Backend Gradle
+meme-generator-backend/.gradle/
+meme-generator-backend/build/
+meme-generator-backend/.kotlin/
+meme-generator-backend/local.properties
+meme-generator-backend/debug.keystore
+
+## Backend uploads
+meme-generator-backend/uploads/
+
+## Logs
+*.log

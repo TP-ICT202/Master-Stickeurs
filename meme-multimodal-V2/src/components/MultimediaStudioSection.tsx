@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, TextInput, ScrollView, Alert, Image, Linking,
 } from 'react-native';
+import { Sparkles, Save, Settings, Clapperboard, Smile, Frown, AlertTriangle, Music2, Play, X } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useStore } from '../store/useStore';
 import { themes, getDerivedColors } from '../theme/colors';
@@ -11,12 +12,12 @@ import {
   generateStickerFromImage, generateGifQueryFromImage, generateVideoQueryFromImage,
   removeImageBackground,
 } from '../services/gemini';
-import { searchGif } from '../services/klipy';
-import { searchShortVideo } from '../services/pexels';
+import { searchGifs, FALLBACK_GIFS } from '../services/giphy';
+import { searchShortVideo, searchShortVideos } from '../services/pexels';
 import { saveMeme } from '../services/database';
 
 const moods = ['LOL', 'PANIQUE', 'COLERE', 'DANSE'] as const;
-const moodEmojis: Record<string, string> = { LOL: '😂', PANIQUE: '😱', COLERE: '😡', DANSE: '🕺' };
+const moodIcons: Record<string, React.ElementType> = { LOL: Smile, PANIQUE: Frown, COLERE: AlertTriangle, DANSE: Music2 };
 const videoEffects = ['Cyber Glow', 'Retro Wave', 'VHS Grain', 'Neon Pulse', 'Vaporwave'] as const;
 const TEXT_POSITIONS = ['bottom', 'top', 'left', 'right'] as const;
 
@@ -35,7 +36,7 @@ export default function MultimediaStudioSection({ contextText }: { contextText?:
         onPress={() => setIsOpen(!isOpen)}
         style={[styles.toggleBtn, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}
       >
-        <Text style={{ fontSize: 16, color: derived.textColor }}>⭐</Text>
+        <Sparkles size={16} color={derived.textColor} strokeWidth={1.5} />
         <Text style={[styles.toggleText, { color: derived.textColor }]}>
           {isOpen ? '▼' : '▶'} Mème Studio
         </Text>
@@ -81,12 +82,14 @@ function StickerContent({ contextText }: { contextText: string }) {
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'STICKER', contextText,
-      topText: store.stickerEmoji, bottomText: store.stickerText,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('sticker_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'STICKER', contextText,
+        topText: store.stickerEmoji, bottomText: store.stickerText,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('sticker_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   return (
@@ -162,30 +165,40 @@ function StickerContent({ contextText }: { contextText: string }) {
         >
           <LinearGradient colors={['#8B5CF6', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {store.isGeneratingSticker ? '...' : '✨ GÉNÉRER'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!store.isGeneratingSticker && <Sparkles size={14} color="#fff" strokeWidth={2} />}
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                {store.isGeneratingSticker ? '...' : 'GÉNÉRER'}
+              </Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF' }]} onPress={handleSave}>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={handleSave}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
           <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>
-            {t('sticker_save', store.currentLanguage) || '💾 SAUVEGARDER'}
+            {t('sticker_save', store.currentLanguage) || 'SAUVEGARDER'}
           </Text>
         </TouchableOpacity>
       </View>
 
       {!store.statusImagePath && (
         <View style={[styles.configPanel, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
-          <Text style={[styles.configTitle, { color: derived.textColor }]}>
-            ⚙️ {t('config_title', store.currentLanguage) || 'Configuration Manuelle'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Settings size={14} color={derived.textColor} strokeWidth={1.5} />
+            <Text style={[styles.configTitle, { color: derived.textColor }]}>
+              {t('config_title', store.currentLanguage) || 'Configuration Manuelle'}
+            </Text>
+          </View>
           <TouchableOpacity onPress={store.clearStickerOutput} style={{ alignSelf: 'flex-end' }}>
             <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '700' }}>{t('clear_output', store.currentLanguage) || 'Vider Sortie'}</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.configSubtitle, { color: derived.secondaryTextColor }]}>
-            ✨ {t('ready_emojis', store.currentLanguage) || 'Éléments prêts (Tap pour insérer) :'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={12} color={derived.secondaryTextColor} strokeWidth={1.5} />
+            <Text style={[styles.configSubtitle, { color: derived.secondaryTextColor }]}>
+              {t('ready_emojis', store.currentLanguage) || 'Éléments prêts (Tap pour insérer) :'}
+            </Text>
+          </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {store.readyToUseEmojis.map((emoji, i) => (
               <TouchableOpacity
@@ -195,7 +208,7 @@ function StickerContent({ contextText }: { contextText: string }) {
               >
                 <Text style={{ fontSize: 18 }}>{emoji}</Text>
                 <TouchableOpacity onPress={() => store.deleteReadyToUseEmoji(emoji)}>
-                  <Text style={{ color: '#EF4444', fontSize: 10, marginLeft: 2 }}>✕</Text>
+                  <X size={12} color="#EF4444" strokeWidth={2} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -210,7 +223,7 @@ function StickerContent({ contextText }: { contextText: string }) {
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>OK</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setEditIdx(null)} style={styles.smallBtn}>
-                <Text style={{ color: derived.secondaryTextColor, fontSize: 12 }}>✕</Text>
+                <X size={12} color={derived.secondaryTextColor} strokeWidth={2} />
               </TouchableOpacity>
             </View>
           )}
@@ -306,6 +319,7 @@ function GifContent({ contextText }: { contextText: string }) {
   const kenX = useRef(new Animated.Value(0)).current;
   const kenY = useRef(new Animated.Value(0)).current;
   const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [gifResults, setGifResults] = useState<{ url: string; previewUrl: string; title: string }[]>([...FALLBACK_GIFS].sort(() => Math.random() - 0.5).slice(0, 6));
   const hasImage = !!store.statusImagePath;
 
   useEffect(() => {
@@ -314,17 +328,17 @@ function GifContent({ contextText }: { contextText: string }) {
     Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(kenScale, { toValue: 1.4, duration: dur, useNativeDriver: true }),
-          Animated.timing(kenX, { toValue: 30, duration: dur, useNativeDriver: true }),
-          Animated.timing(kenY, { toValue: -10, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenScale, { toValue: 1.35, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenX, { toValue: 25, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenY, { toValue: 0, duration: dur, useNativeDriver: true }),
         ]),
         Animated.parallel([
           Animated.timing(kenScale, { toValue: 1.0, duration: dur, useNativeDriver: true }),
-          Animated.timing(kenX, { toValue: -20, duration: dur, useNativeDriver: true }),
-          Animated.timing(kenY, { toValue: 15, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenX, { toValue: -15, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenY, { toValue: 0, duration: dur, useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.timing(kenScale, { toValue: 1.2, duration: dur, useNativeDriver: true }),
+          Animated.timing(kenScale, { toValue: 1.15, duration: dur, useNativeDriver: true }),
           Animated.timing(kenX, { toValue: 0, duration: dur, useNativeDriver: true }),
           Animated.timing(kenY, { toValue: 0, duration: dur, useNativeDriver: true }),
         ]),
@@ -336,25 +350,29 @@ function GifContent({ contextText }: { contextText: string }) {
   const handleGenerate = async () => {
     store.setIsSearchingGif(true);
     setGifUrl(null);
+    setGifResults([]);
     try {
       const q = store.statusImagePath
         ? await generateGifQueryFromImage(store.statusImagePath)
         : await generateGifSearchQuery(contextText);
       store.setGifQuery(q);
-      const gif = await searchGif(q);
-      if (gif?.url) setGifUrl(gif.url);
+      const results = await searchGifs(q, 6);
+      setGifResults(results);
+      if (results.length > 0) setGifUrl(results[0].url);
     } finally {
       store.setIsSearchingGif(false);
     }
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'GIF', contextText,
-      topText: store.selectedGifMood, bottomText: store.gifQuery,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('gif_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'GIF', contextText,
+        topText: store.selectedGifMood, bottomText: store.gifQuery,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('gif_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   return (
@@ -393,6 +411,26 @@ function GifContent({ contextText }: { contextText: string }) {
         style={[styles.smallInput, { color: derived.textColor, borderColor: derived.borderColor }]}
       />
 
+      {gifResults.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 120 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+            {gifResults.map((gif, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setGifUrl(gif.url)}
+                style={{
+                  width: 100, height: 100, borderRadius: 12, overflow: 'hidden',
+                  borderWidth: gif.url === gifUrl ? 3 : 1,
+                  borderColor: gif.url === gifUrl ? theme.accentColor : derived.borderColor,
+                }}
+              >
+                <Image source={{ uri: gif.previewUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
       {gifUrl ? (
         <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
           <Image source={{ uri: gifUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
@@ -410,7 +448,10 @@ function GifContent({ contextText }: { contextText: string }) {
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
           )}
-          {!hasImage && <Text style={{ fontSize: 96 }}>{moodEmojis[store.selectedGifMood] || '😂'}</Text>}
+          {!hasImage && (() => {
+            const MI = moodIcons[store.selectedGifMood];
+            return MI ? <MI size={80} color={derived.secondaryTextColor} strokeWidth={1} /> : <Smile size={80} color={derived.secondaryTextColor} strokeWidth={1} />;
+          })()}
           {!hasImage && <Text style={[styles.gifQueryText, { color: derived.textColor }]}>{store.gifQuery}</Text>}
         </Animated.View>
       )}
@@ -424,14 +465,18 @@ function GifContent({ contextText }: { contextText: string }) {
         >
           <LinearGradient colors={['#8B5CF6', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {store.isSearchingGif ? '...' : '✨ GÉNÉRER'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!store.isSearchingGif && <Sparkles size={14} color="#fff" strokeWidth={2} />}
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                {store.isSearchingGif ? '...' : 'GÉNÉRER'}
+              </Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF' }]} onPress={handleSave}>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={handleSave}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
           <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>
-            {t('gif_save', store.currentLanguage) || '💾 SAUVEGARDER'}
+            {t('gif_save', store.currentLanguage) || 'SAUVEGARDER'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -448,6 +493,7 @@ function VideoContent({ contextText }: { contextText: string }) {
   const panYAnim = useRef(new Animated.Value(0)).current;
   const hasImage = !!store.statusImagePath;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoResults, setVideoResults] = useState<{ url: string; previewUrl: string; title: string }[]>([]);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   useEffect(() => {
@@ -458,12 +504,12 @@ function VideoContent({ contextText }: { contextText: string }) {
         Animated.parallel([
           Animated.timing(zoomAnim, { toValue: 1.3, duration: dur, useNativeDriver: true }),
           Animated.timing(panXAnim, { toValue: 20, duration: dur, useNativeDriver: true }),
-          Animated.timing(panYAnim, { toValue: -10, duration: dur, useNativeDriver: true }),
+          Animated.timing(panYAnim, { toValue: 0, duration: dur, useNativeDriver: true }),
         ]),
         Animated.parallel([
           Animated.timing(zoomAnim, { toValue: 1.0, duration: dur, useNativeDriver: true }),
           Animated.timing(panXAnim, { toValue: -15, duration: dur, useNativeDriver: true }),
-          Animated.timing(panYAnim, { toValue: 10, duration: dur, useNativeDriver: true }),
+          Animated.timing(panYAnim, { toValue: 0, duration: dur, useNativeDriver: true }),
         ]),
       ]),
     ).start();
@@ -474,6 +520,7 @@ function VideoContent({ contextText }: { contextText: string }) {
     if (!contextText.trim() && !store.statusImagePath) return;
     setIsGeneratingVideo(true);
     setVideoUrl(null);
+    setVideoResults([]);
     try {
       let query = contextText || 'funny celebration';
       if (store.statusImagePath) {
@@ -487,9 +534,13 @@ function VideoContent({ contextText }: { contextText: string }) {
         store.setVideoPunchline(punchline);
         query = punchline || title;
       }
-      const video = await searchShortVideo(query);
-      if (video?.url) setVideoUrl(video.url);
-      else Alert.alert('Vidéo', 'Aucune vidéo Pexels trouvée pour cette recherche.');
+      const results = await searchShortVideos(query, 4);
+      setVideoResults(results);
+      if (results.length > 0) {
+        setVideoUrl(results[0].url);
+      } else {
+        Alert.alert('Vidéo', 'Aucune vidéo Pexels trouvée pour cette recherche.');
+      }
     } catch (e) {
       console.warn('[Video] generate error:', e);
     } finally {
@@ -498,13 +549,15 @@ function VideoContent({ contextText }: { contextText: string }) {
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'VIDEO', contextText,
-      topText: store.videoTitle, bottomText: store.videoPunchline,
-      bgImageUri: store.statusImagePath,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('video_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'VIDEO', contextText,
+        topText: store.videoTitle, bottomText: store.videoPunchline,
+        bgImageUri: store.statusImagePath,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('video_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   return (
@@ -536,6 +589,27 @@ function VideoContent({ contextText }: { contextText: string }) {
         style={[styles.smallInput, { color: derived.textColor, borderColor: derived.borderColor, width: 80 }]}
       />
 
+      {videoResults.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 120 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+            {videoResults.map((v, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setVideoUrl(v.url)}
+                style={{
+                  width: 100, height: 100, borderRadius: 12, overflow: 'hidden',
+                  borderWidth: v.url === videoUrl ? 3 : 1,
+                  borderColor: v.url === videoUrl ? theme.accentColor : derived.borderColor,
+                  backgroundColor: '#000',
+                }}
+              >
+                <Image source={{ uri: v.previewUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
       <View style={styles.actionRow}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -545,42 +619,45 @@ function VideoContent({ contextText }: { contextText: string }) {
         >
           <LinearGradient colors={['#EF4444', '#DC2626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {isGeneratingVideo ? '...' : '🎬 CHARGER SHORT VIDÉO'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!isGeneratingVideo && <Clapperboard size={14} color="#fff" strokeWidth={2} />}
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                {isGeneratingVideo ? '...' : 'CHARGER SHORT VIDÉO'}
+              </Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF' }]} onPress={handleSave}>
-          <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>💾 SAVE</Text>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={handleSave}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
+          <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>SAVE</Text>
         </TouchableOpacity>
       </View>
 
-      {videoUrl ? (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>✅ Vidéo prête</Text>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
-            style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '800' }}>▶ LIRE LA VIDÉO</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
-          {hasImage ? (
-            <Animated.Image source={{ uri: store.statusImagePath ?? undefined }} style={[StyleSheet.absoluteFill, { transform: [{ scale: zoomAnim }, { translateX: panXAnim }, { translateY: panYAnim }] }]} resizeMode="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
-          )}
-          {store.videoPunchline ? (
-            <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' }}>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 1, height: 1 } }}>
-                {store.videoPunchline.toUpperCase()}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      )}
+      <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
+        {videoUrl ? (
+          <View style={{ justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', width: '100%', height: '100%' }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>Video prete</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
+              style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Play size={16} color="#fff" strokeWidth={2} />
+              <Text style={{ color: '#fff', fontWeight: '800' }}>LIRE LA VIDEO</Text>
+            </TouchableOpacity>
+          </View>
+        ) : hasImage ? (
+          <Animated.Image source={{ uri: store.statusImagePath ?? undefined }} style={[StyleSheet.absoluteFill, { transform: [{ scale: zoomAnim }, { translateX: panXAnim }, { translateY: panYAnim }] }]} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
+        )}
+        {!videoUrl && store.videoPunchline ? (
+          <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 1, height: 1 } }}>
+              {store.videoPunchline.toUpperCase()}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }

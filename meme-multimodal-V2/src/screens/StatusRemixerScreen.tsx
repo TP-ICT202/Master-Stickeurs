@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated, PanResponder, Dimensions, Image, Linking, Platform,
 } from 'react-native';
+import { Camera, Palette, Film, Tv, Save, Share2, Sparkles, RotateCcw, Clapperboard, Smile, Frown, AlertTriangle, Music, Play, Loader } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useStore } from '../store/useStore';
 import { themes, getDerivedColors } from '../theme/colors';
@@ -10,14 +11,15 @@ import MemeCardPreview from '../components/MemeCardPreview';
 import MultimediaStudioSection from '../components/MultimediaStudioSection';
 import {
   analyzeImageForMeme, generateGifSearchQuery, removeImageBackground,
-  generateStickerFromImage, generateGifQueryFromImage, generateVideoQueryFromImage,
+  generateStickerFromImage, generateStickerSuggestion,
+  generateGifQueryFromImage, generateVideoQueryFromImage,
 } from '../services/gemini';
-import { searchGif } from '../services/klipy';
-import { searchShortVideo } from '../services/pexels';
+import { searchGifs, FALLBACK_GIFS } from '../services/giphy';
+import { searchShortVideo, searchShortVideos } from '../services/pexels';
 import { requestCameraPermission, requestGalleryPermission, showPermissionDenied } from '../utils/permissions';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { saveMeme } from '../services/database';
-import { shareMeme } from '../utils/memeSaver';
+import { shareMeme, saveMemeToFile } from '../utils/memeSaver';
 import { FILTERS, type DrawingPoint } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,10 +27,16 @@ const COLORS = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FFFFFF', '#00FFFF'
 
 const subModes = ['PHOTO_REMIXER', 'STICKER', 'GIF', 'VIDEO'] as const;
 const subModeLabels: Record<string, string> = {
-  PHOTO_REMIXER: '📸 Photo',
-  STICKER: '🎨 Sticker AI',
-  GIF: '🎬 GIF Situation',
-  VIDEO: '📺 Short Vidéo',
+  PHOTO_REMIXER: 'Photo',
+  STICKER: 'Sticker AI',
+  GIF: 'GIF Situation',
+  VIDEO: 'Short Video',
+};
+const subModeIcons: Record<string, React.ElementType> = {
+  PHOTO_REMIXER: Camera,
+  STICKER: Palette,
+  GIF: Film,
+  VIDEO: Tv,
 };
 
 function DirectImageEditor() {
@@ -172,54 +180,47 @@ function StickerContent() {
   const store = useStore();
   const theme = themes[store.currentTheme as keyof typeof themes] || themes['Dark Void'];
   const derived = getDerivedColors(theme);
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(0)).current;
   const hasImage = !!store.statusImagePath;
-  const [extractedImageUri, setExtractedImageUri] = useState<string | null>(null);
-  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
-    if (hasImage && !extractedImageUri && !isExtracting) {
-      setIsExtracting(true);
-      removeImageBackground(store.statusImagePath!).then((uri) => {
-        if (uri) setExtractedImageUri(uri);
-        setIsExtracting(false);
-      }).catch(() => setIsExtracting(false));
-    }
-  }, [hasImage]);
-
-  useEffect(() => {
-    if (!hasImage) return;
     store.setIsGeneratingSticker(true);
-    generateStickerFromImage(store.statusImagePath!).then(([emoji, text]) => {
+    (hasImage
+      ? generateStickerFromImage(store.statusImagePath!)
+      : generateStickerSuggestion(store.contextInput || 'funny')
+    ).then(([emoji, text]) => {
       store.setStickerEmoji(emoji);
       store.setStickerText(text);
-    }).catch((e) => {
-      console.warn('[StickerContent] Generation error:', e);
+    }).catch(() => {
       store.setStickerEmoji('🔥');
       store.setStickerText("C'EST L'IMAGE !");
     }).finally(() => store.setIsGeneratingSticker(false));
   }, [hasImage]);
 
   useEffect(() => {
-    if (hasImage) return;
     Animated.loop(
       Animated.sequence([
-        Animated.timing(shakeAnim, { toValue: -5 * store.stickerAnimationSpeed, duration: 150, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 5 * store.stickerAnimationSpeed, duration: 150, useNativeDriver: true }),
+        Animated.timing(bounceAnim, { toValue: 1, duration: 600 * store.stickerAnimationSpeed, useNativeDriver: true }),
+        Animated.timing(bounceAnim, { toValue: 0, duration: 600 * store.stickerAnimationSpeed, useNativeDriver: true }),
       ]),
     ).start();
-  }, [store.stickerAnimationSpeed, hasImage]);
+  }, [store.stickerAnimationSpeed]);
+
+  const bounce = bounceAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, -10, 0],
+  });
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'STICKER',
-      contextText: store.contextInput,
-      topText: store.stickerEmoji,
-      bottomText: store.stickerText,
-      bgImageUri: store.statusImagePath,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('sticker_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'STICKER', contextText: store.contextInput,
+        topText: store.stickerEmoji, bottomText: store.stickerText,
+        bgImageUri: store.statusImagePath,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('sticker_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde sticker'); }
   };
 
   const getPositionStyle = () => {
@@ -256,25 +257,6 @@ function StickerContent() {
         </>
       )}
 
-      {hasImage && (
-        <>
-          <Text style={[styles.paramLabel, { color: derived.textColor }]}>
-            Position du texte :
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(['bottom', 'top', 'left', 'right'] as const).map((pos) => (
-              <TouchableOpacity
-                key={pos}
-                style={[styles.chip, { borderColor: derived.borderColor }, store.stickerTextPosition === pos && { backgroundColor: theme.accentColor }]}
-                onPress={() => store.setStickerTextPosition(pos)}
-              >
-                <Text style={[styles.chipText, { color: store.stickerTextPosition === pos ? '#fff' : derived.textColor }]}>{pos}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
-
       {!hasImage && (
         <>
           <Text style={[styles.paramLabel, { color: derived.textColor }]}>
@@ -289,46 +271,31 @@ function StickerContent() {
         </>
       )}
 
-      {hasImage ? (
-        <View style={[styles.stickerPreview, {
-          borderColor: '#FFFFFF',
-          borderRadius: 120,
-          borderWidth: 4,
-          overflow: 'hidden',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
-        }]}>
-          <Image source={{ uri: (extractedImageUri || store.statusImagePath) ?? undefined }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-          {isExtracting && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }]}><Text style={{ color: '#fff', fontWeight: '800' }}>Extraction...</Text></View>}
-          {store.stickerText ? (
-            <View style={[styles.stickerTextBg, { backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, ...getPositionStyle() }]}>
-              <Text style={styles.stickerText}>{store.stickerText.toUpperCase()}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : (
-        <Animated.View
-          style={[
-            styles.stickerPreview,
-            {
-              borderColor: derived.borderColor,
-              borderRadius: store.stickerShape === 'Circle' ? 120 : store.stickerShape === 'Rounded' ? 24 : 12,
-              transform: hasImage ? [] : [{ translateX: shakeAnim }],
-            },
-          ]}
-        >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.accentColor + '20' }]} />
-          <Text style={{ fontSize: 84 }}>{store.stickerEmoji}</Text>
-          {store.stickerText ? (
-            <View style={[styles.stickerTextBg, { backgroundColor: 'rgba(0,0,0,0.7)', ...getPositionStyle() }]}>
-              <Text style={styles.stickerText}>{store.stickerText.toUpperCase()}</Text>
-            </View>
-          ) : null}
-        </Animated.View>
-      )}
+      <Animated.View
+        style={[
+          styles.stickerPreview,
+          {
+            borderColor: hasImage ? '#FFFFFF' : derived.borderColor,
+            borderRadius: hasImage ? 120 : store.stickerShape === 'Circle' ? 120 : store.stickerShape === 'Rounded' ? 24 : 12,
+            transform: [{ translateY: bounce }],
+            overflow: 'hidden',
+          },
+        ]}
+      >
+        {hasImage ? (
+          <Image source={{ uri: store.statusImagePath ?? undefined }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <>
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.accentColor + '20' }]} />
+            <Text style={{ fontSize: 84 }}>{store.stickerEmoji}</Text>
+          </>
+        )}
+        {store.stickerText ? (
+          <View style={[styles.stickerTextBg, { backgroundColor: 'rgba(0,0,0,0.7)', ...getPositionStyle() }]}>
+            <Text style={styles.stickerText}>{store.stickerText.toUpperCase()}</Text>
+          </View>
+        ) : null}
+      </Animated.View>
 
       <TouchableOpacity
         activeOpacity={0.85}
@@ -336,8 +303,9 @@ function StickerContent() {
         style={{ borderRadius: 9999, overflow: 'hidden' }}
       >
         <LinearGradient colors={['#FFFFFF', '#E5E5E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={[styles.saveBtn, { paddingHorizontal: 32 }]}>
-          <Text style={[styles.saveBtnText, { color: '#0A0A0A' }]}>💾 {t('sticker_save', store.currentLanguage) || 'ENREGISTRER'}</Text>
+          style={[styles.saveBtn, { paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
+          <Text style={[styles.saveBtnText, { color: '#0A0A0A' }]}>{t('sticker_save', store.currentLanguage) || 'ENREGISTRER'}</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -352,6 +320,7 @@ function GifContent() {
   const kenX = useRef(new Animated.Value(0)).current;
   const kenY = useRef(new Animated.Value(0)).current;
   const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [gifResults, setGifResults] = useState<{ url: string; previewUrl: string; title: string }[]>([...FALLBACK_GIFS].sort(() => Math.random() - 0.5).slice(0, 6));
   const hasImage = !!store.statusImagePath;
 
   useEffect(() => {
@@ -383,16 +352,19 @@ function GifContent() {
     if (!hasImage) return;
     store.setIsSearchingGif(true);
     setGifUrl(null);
+    setGifResults([]);
     generateGifQueryFromImage(store.statusImagePath!).then((q) => {
       store.setGifQuery(q);
-      return searchGif(q);
-    }).then((gif) => {
-      if (gif?.url) setGifUrl(gif.url);
+      return searchGifs(q, 6);
+    }).then((results) => {
+      setGifResults(results);
+      if (results.length > 0) setGifUrl(results[0].url);
     }).catch((e) => {
       console.warn('[GifContent] Generation error:', e);
       store.setGifQuery('funny reaction');
-      searchGif('funny reaction').then((gif) => {
-        if (gif?.url) setGifUrl(gif.url);
+      searchGifs('funny reaction', 6).then((results) => {
+        setGifResults(results);
+        if (results.length > 0) setGifUrl(results[0].url);
       });
     }).finally(() => store.setIsSearchingGif(false));
   }, [hasImage]);
@@ -400,28 +372,32 @@ function GifContent() {
   const handleGenerate = async () => {
     store.setIsSearchingGif(true);
     setGifUrl(null);
+    setGifResults([]);
     try {
       const q = store.statusImagePath
         ? await generateGifQueryFromImage(store.statusImagePath)
         : await generateGifSearchQuery(store.contextInput || store.selectedGifMood);
       store.setGifQuery(q);
-      const gif = await searchGif(q);
-      if (gif?.url) setGifUrl(gif.url);
+      const results = await searchGifs(q, 6);
+      setGifResults(results);
+      if (results.length > 0) setGifUrl(results[0].url);
     } finally {
       store.setIsSearchingGif(false);
     }
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'GIF',
-      contextText: store.contextInput,
-      topText: store.selectedGifMood,
-      bottomText: store.gifQuery,
-      bgImageUri: store.statusImagePath,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('gif_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'GIF',
+        contextText: store.contextInput,
+        topText: store.selectedGifMood,
+        bottomText: store.gifQuery,
+        bgImageUri: store.statusImagePath,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('gif_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   return (
@@ -441,9 +417,15 @@ function GifContent() {
                 style={[styles.chip, { borderColor: derived.borderColor }, store.selectedGifMood === mood && { backgroundColor: theme.accentColor }]}
                 onPress={() => store.setSelectedGifMood(mood)}
               >
-                <Text style={[styles.chipText, { color: store.selectedGifMood === mood ? '#fff' : derived.textColor }]}>
-                  {mood === 'LOL' ? '😂' : mood === 'PANIQUE' ? '😱' : mood === 'COLERE' ? '😡' : '🕺'} {mood}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  {mood === 'LOL' ? <Smile size={14} color={store.selectedGifMood === mood ? '#fff' : derived.textColor} strokeWidth={1.5} />
+                    : mood === 'PANIQUE' ? <Frown size={14} color={store.selectedGifMood === mood ? '#fff' : derived.textColor} strokeWidth={1.5} />
+                    : mood === 'COLERE' ? <AlertTriangle size={14} color={store.selectedGifMood === mood ? '#fff' : derived.textColor} strokeWidth={1.5} />
+                    : <Music size={14} color={store.selectedGifMood === mood ? '#fff' : derived.textColor} strokeWidth={1.5} />}
+                  <Text style={[styles.chipText, { color: store.selectedGifMood === mood ? '#fff' : derived.textColor }]}>
+                    {mood}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -469,13 +451,17 @@ function GifContent() {
         >
           <LinearGradient colors={['#8B5CF6', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {store.isSearchingGif ? '...' : '✨ GÉNÉRER'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!store.isSearchingGif && <Sparkles size={14} color="#fff" strokeWidth={2} />}
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                {store.isSearchingGif ? '...' : 'GÉNÉRER'}
+              </Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtnGif, { backgroundColor: '#FFFFFF' }]} onPress={handleSave}>
-          <Text style={[styles.actionBtnGifText, { color: '#0A0A0A' }]}>💾 {t('gif_save', store.currentLanguage) || 'ENREGISTRER'}</Text>
+        <TouchableOpacity style={[styles.actionBtnGif, { backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={handleSave}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
+          <Text style={[styles.actionBtnGifText, { color: '#0A0A0A' }]}>{t('gif_save', store.currentLanguage) || 'ENREGISTRER'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -497,9 +483,12 @@ function GifContent() {
             <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
           )}
           {!hasImage && (
-            <Text style={{ fontSize: 96 }}>
-              {store.selectedGifMood === 'LOL' ? '😂' : store.selectedGifMood === 'PANIQUE' ? '😱' : store.selectedGifMood === 'COLERE' ? '😡' : '🕺'}
-            </Text>
+            <View style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+              {store.selectedGifMood === 'LOL' ? <Smile size={80} color={derived.secondaryTextColor} strokeWidth={1} />
+                : store.selectedGifMood === 'PANIQUE' ? <Frown size={80} color={derived.secondaryTextColor} strokeWidth={1} />
+                : store.selectedGifMood === 'COLERE' ? <AlertTriangle size={80} color={derived.secondaryTextColor} strokeWidth={1} />
+                : <Music size={80} color={derived.secondaryTextColor} strokeWidth={1} />}
+            </View>
           )}
           {!hasImage && <Text style={[styles.gifQueryText, { color: derived.textColor }]}>{store.gifQuery}</Text>}
         </Animated.View>
@@ -515,19 +504,24 @@ function VideoContent() {
   const zoomAnim = useRef(new Animated.Value(1)).current;
   const panXAnim = useRef(new Animated.Value(0)).current;
   const panYAnim = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
   const hasImage = !!store.statusImagePath;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoResults, setVideoResults] = useState<{ url: string; previewUrl: string; title: string }[]>([]);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   useEffect(() => {
     if (!hasImage || !store.statusImagePath) return;
     store.setIsGeneratingVideo(true);
     setVideoUrl(null);
+    setVideoResults([]);
     generateVideoQueryFromImage(store.statusImagePath).then(async ([title, punchline]) => {
       store.setVideoTitle(title);
       store.setVideoPunchline(punchline);
-      const video = await searchShortVideo(punchline || title || 'funny reaction');
-      if (video?.url) setVideoUrl(video.url);
+      const results = await searchShortVideos(punchline || title || 'funny reaction', 4);
+      setVideoResults(results);
+      if (results.length > 0) setVideoUrl(results[0].url);
     }).catch((e) => {
       console.warn('[VideoContent] Generation error:', e);
       store.setVideoTitle('ALERTE');
@@ -537,27 +531,42 @@ function VideoContent() {
 
   useEffect(() => {
     if (!hasImage) return;
-    const dur = 4000 / (store.videoZoomSpeed || 1);
+    const dur = 3000 / (store.videoZoomSpeed || 1);
     Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(zoomAnim, { toValue: 1.3, duration: dur, useNativeDriver: true }),
-          Animated.timing(panXAnim, { toValue: 20, duration: dur, useNativeDriver: true }),
-          Animated.timing(panYAnim, { toValue: -10, duration: dur, useNativeDriver: true }),
+          Animated.timing(zoomAnim, { toValue: 1.4, duration: dur, useNativeDriver: true }),
+          Animated.timing(panXAnim, { toValue: 25, duration: dur, useNativeDriver: true }),
+          Animated.timing(panYAnim, { toValue: -15, duration: dur, useNativeDriver: true }),
+          Animated.timing(rotateAnim, { toValue: 1, duration: dur * 2, useNativeDriver: true }),
+          Animated.timing(opacityAnim, { toValue: 0.85, duration: dur / 2, useNativeDriver: true }),
         ]),
         Animated.parallel([
           Animated.timing(zoomAnim, { toValue: 1.0, duration: dur, useNativeDriver: true }),
-          Animated.timing(panXAnim, { toValue: -15, duration: dur, useNativeDriver: true }),
-          Animated.timing(panYAnim, { toValue: 10, duration: dur, useNativeDriver: true }),
+          Animated.timing(panXAnim, { toValue: -20, duration: dur, useNativeDriver: true }),
+          Animated.timing(panYAnim, { toValue: 15, duration: dur, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(zoomAnim, { toValue: 1.2, duration: dur * 0.7, useNativeDriver: true }),
+          Animated.timing(panXAnim, { toValue: 0, duration: dur * 0.7, useNativeDriver: true }),
+          Animated.timing(panYAnim, { toValue: 0, duration: dur * 0.7, useNativeDriver: true }),
+          Animated.timing(rotateAnim, { toValue: 0, duration: dur, useNativeDriver: true }),
+          Animated.timing(opacityAnim, { toValue: 1, duration: dur * 0.5, useNativeDriver: true }),
         ]),
       ]),
     ).start();
-    return () => { zoomAnim.setValue(1); panXAnim.setValue(0); panYAnim.setValue(0); };
+    return () => { zoomAnim.setValue(1); panXAnim.setValue(0); panYAnim.setValue(0); rotateAnim.setValue(0); opacityAnim.setValue(1); };
   }, [store.videoZoomSpeed, hasImage]);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-1deg', '1deg'],
+  });
 
   const handleGenerateVideo = async () => {
     setIsGeneratingVideo(true);
     setVideoUrl(null);
+    setVideoResults([]);
     try {
       const query = store.videoPunchline || store.videoTitle || store.contextInput || 'funny celebration';
       if (store.statusImagePath) {
@@ -565,9 +574,10 @@ function VideoContent() {
         store.setVideoTitle(title);
         store.setVideoPunchline(punchline);
       }
-      const video = await searchShortVideo(query);
-      if (video?.url) {
-        setVideoUrl(video.url);
+      const results = await searchShortVideos(query, 4);
+      setVideoResults(results);
+      if (results.length > 0) {
+        setVideoUrl(results[0].url);
       } else {
         Alert.alert('Vidéo', 'Aucune vidéo trouvée. Vérifie la clé Pexels dans config.ts');
       }
@@ -580,15 +590,17 @@ function VideoContent() {
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'VIDEO',
-      contextText: store.contextInput,
-      topText: store.videoTitle,
-      bottomText: store.videoPunchline,
-      bgImageUri: store.statusImagePath,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('video_saved', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'VIDEO',
+        contextText: store.contextInput,
+        topText: store.videoTitle,
+        bottomText: store.videoPunchline,
+        bgImageUri: store.statusImagePath,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('video_saved', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   return (
@@ -620,6 +632,27 @@ function VideoContent() {
         style={[styles.input, { color: derived.textColor, borderColor: derived.borderColor }]}
       />
 
+      {videoResults.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 120 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+            {videoResults.map((v, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setVideoUrl(v.url)}
+                style={{
+                  width: 100, height: 100, borderRadius: 12, overflow: 'hidden',
+                  borderWidth: v.url === videoUrl ? 3 : 1,
+                  borderColor: v.url === videoUrl ? theme.accentColor : derived.borderColor,
+                  backgroundColor: '#000',
+                }}
+              >
+                <Image source={{ uri: v.previewUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
       <View style={styles.actionRow}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -629,51 +662,70 @@ function VideoContent() {
         >
           <LinearGradient colors={['#EF4444', '#DC2626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 9999 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-              {isGeneratingVideo ? '...' : '🎬 CHARGER SHORT VIDÉO'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!isGeneratingVideo && <Clapperboard size={14} color="#fff" strokeWidth={2} />}
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                {isGeneratingVideo ? '...' : 'CHARGER SHORT VIDÉO'}
+              </Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtnGif, { backgroundColor: '#FFFFFF' }]} onPress={handleSave}>
-          <Text style={[styles.actionBtnGifText, { color: '#0A0A0A' }]}>💾 SAVE</Text>
+        <TouchableOpacity style={[styles.actionBtnGif, { backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={handleSave}>
+          <Save size={14} color="#0A0A0A" strokeWidth={2} />
+          <Text style={[styles.actionBtnGifText, { color: '#0A0A0A' }]}>SAVE</Text>
         </TouchableOpacity>
       </View>
 
-      {videoUrl ? (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>✅ Vidéo prête</Text>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
-            style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '800' }}>▶ LIRE LA VIDÉO</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
-          {hasImage ? (
-            <Animated.Image source={{ uri: store.statusImagePath ?? undefined }} style={[StyleSheet.absoluteFill, { transform: [{ scale: zoomAnim }, { translateX: panXAnim }, { translateY: panYAnim }] }]} resizeMode="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
-          )}
-          {store.videoPunchline ? (
-            <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' }}>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 1, height: 1 } }}>
-                {store.videoPunchline.toUpperCase()}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      )}
+      <View style={[styles.stickerPreview, { borderColor: derived.borderColor, borderRadius: 16, overflow: 'hidden' }]}>
+        {videoUrl ? (
+          <View style={{ justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', width: '100%', height: '100%' }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 8 }}>Video prete</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(videoUrl).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo'))}
+              style={{ backgroundColor: theme.accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Play size={16} color="#fff" strokeWidth={2} />
+              <Text style={{ color: '#fff', fontWeight: '800' }}>LIRE LA VIDEO</Text>
+            </TouchableOpacity>
+          </View>
+        ) : hasImage ? (
+          <Animated.Image source={{ uri: store.statusImagePath ?? undefined }} style={[StyleSheet.absoluteFill, { transform: [{ scale: zoomAnim }, { translateX: panXAnim }, { translateY: panYAnim }, { rotate }], opacity: opacityAnim }]} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.baseColor }]} />
+        )}
+        {!videoUrl && store.videoPunchline ? (
+          <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 1, height: 1 } }}>
+              {store.videoPunchline.toUpperCase()}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
-
 
 export default function StatusRemixerScreen() {
   const store = useStore();
   const theme = themes[store.currentTheme as keyof typeof themes] || themes['Dark Void'];
   const derived = getDerivedColors(theme);
+  const memeViewRef = useRef<ViewShot>(null);
+  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (store.isAnalyzingStatusImage) {
+      Animated.loop(
+        Animated.timing(spinAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ).start();
+    } else {
+      spinAnim.setValue(0);
+    }
+  }, [store.isAnalyzingStatusImage]);
+
+  const spinInterp = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const processImage = (uri: string) => {
     store.setStatusImagePath(uri);
@@ -697,7 +749,7 @@ export default function StatusRemixerScreen() {
           }
           if (response.errorCode) {
             console.warn('[StatusRemixer] Image picker error:', response.errorMessage);
-            Alert.alert('❌ Erreur Galerie', response.errorMessage || 'Impossible d\'accéder à la galerie');
+            Alert.alert('Erreur Galerie', response.errorMessage || 'Impossible d\'accéder à la galerie');
             return;
           }
           const uri = response.assets?.[0]?.uri;
@@ -709,7 +761,7 @@ export default function StatusRemixerScreen() {
       );
     } catch (e) {
       console.warn('[StatusRemixer] launchImageLibrary error:', e);
-      Alert.alert('❌ Erreur', 'Impossible d\'ouvrir la galerie');
+      Alert.alert('Erreur', 'Impossible d\'ouvrir la galerie');
     }
   };
 
@@ -726,7 +778,7 @@ export default function StatusRemixerScreen() {
           }
           if (response.errorCode) {
             console.warn('[StatusRemixer] Camera error:', response.errorCode, response.errorMessage);
-            Alert.alert('❌ Erreur Caméra', response.errorMessage || 'Impossible d\'accéder à la caméra. Vérifie les permissions.');
+            Alert.alert('Erreur Camera', response.errorMessage || 'Impossible d\'acceder a la camera. Verifie les permissions.');
             return;
           }
           const uri = response.assets?.[0]?.uri;
@@ -738,7 +790,7 @@ export default function StatusRemixerScreen() {
       );
     } catch (e) {
       console.warn('[StatusRemixer] launchCamera error:', e);
-      Alert.alert('❌ Erreur Caméra', (e instanceof Error ? e.message : 'Impossible de lancer la caméra'));
+      Alert.alert('Erreur Camera', (e instanceof Error ? e.message : 'Impossible de lancer la camera'));
     }
   };
 
@@ -755,18 +807,23 @@ export default function StatusRemixerScreen() {
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'IMAGE',
-      contextText: store.contextInput,
-      topText: store.statusTopText,
-      bottomText: store.statusBottomText,
-      bgImageUri: store.statusImagePath,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('save_success', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'IMAGE',
+        contextText: store.contextInput,
+        topText: store.statusTopText,
+        bottomText: store.statusBottomText,
+        bgImageUri: store.statusImagePath,
+      });
+      store.addSavedMeme(meme);
+      saveMemeToFile(meme).then((fp) => {
+        if (fp) console.log('[Save] Fichier image sauvegarde:', fp);
+      });
+      Alert.alert(t('save_success', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
-  const handleShare = () => shareMeme({ topText: store.statusTopText, bottomText: store.statusBottomText });
+  const handleShare = () => shareMeme({ topText: store.statusTopText, bottomText: store.statusBottomText, viewRef: memeViewRef.current });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -782,12 +839,17 @@ export default function StatusRemixerScreen() {
             ]}
             onPress={() => store.setStatusSubMode(mode)}
           >
-            <Text style={[
-              styles.subModeText,
-              { color: store.statusSubMode === mode ? '#fff' : derived.textColor },
-            ]}>
-              {subModeLabels[mode]}
-            </Text>
+            {(() => {
+              const SubIcon = subModeIcons[mode];
+              return (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  {SubIcon && <SubIcon size={14} color={store.statusSubMode === mode ? '#fff' : derived.textColor} strokeWidth={1.5} />}
+                  <Text style={[styles.subModeText, { color: store.statusSubMode === mode ? '#fff' : derived.textColor }]}>
+                    {subModeLabels[mode]}
+                  </Text>
+                </View>
+              );
+            })()}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -800,11 +862,11 @@ export default function StatusRemixerScreen() {
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#3D3D3D', justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 24, color: '#E5E5E5' }}>📸</Text>
+                <Camera size={24} color={theme.accentColor} strokeWidth={1.5} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '600' }}>Status Remixer Photo AI</Text>
-                <Text style={{ color: '#C2C2C2', fontSize: 11 }}>Upload or select a photo to begin</Text>
+                <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '600' }}>{t('photo_remixer_title', store.currentLanguage)}</Text>
+                <Text style={{ color: '#C2C2C2', fontSize: 11 }}>{t('photo_remixer_desc', store.currentLanguage)}</Text>
               </View>
             </View>
           </View>
@@ -829,7 +891,10 @@ export default function StatusRemixerScreen() {
               style={[styles.cameraBtn, { backgroundColor: theme.spotlightColor }]}
               onPress={handleTakePhoto}
             >
-              <Text style={styles.cameraBtnText}>📷 {t('photo', store.currentLanguage)}</Text>
+              <View style={styles.cameraBtnText}>
+                <Camera size={14} color="#fff" strokeWidth={2} />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11, marginLeft: 4 }}>{t('photo', store.currentLanguage)}</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -868,7 +933,10 @@ export default function StatusRemixerScreen() {
 
           {store.isAnalyzingStatusImage && (
             <View style={[styles.analyzingCard, { backgroundColor: derived.cardBackground }]}>
-              <Text style={[styles.analyzingText, { color: derived.secondaryTextColor }]}>
+              <Animated.View style={{ transform: [{ rotate: spinInterp }] }}>
+                <Loader size={32} color={theme.accentColor} strokeWidth={1.5} />
+              </Animated.View>
+              <Text style={[styles.analyzingText, { color: derived.secondaryTextColor, marginTop: 8 }]}>
                 {t('ai_analysis', store.currentLanguage)}
               </Text>
             </View>
@@ -877,7 +945,7 @@ export default function StatusRemixerScreen() {
           {(store.statusTopText || store.statusBottomText) && (
             <>
               <MemeCardPreview
-                templateIndex={store.selectedPresetBgIndex}
+                templateIndex={store.statusBgIndex}
                 topText={store.statusTopText}
                 bottomText={store.statusBottomText}
                 customBgUri={store.statusImagePath}

@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Animated,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import { Cpu, Sparkles, Image, RotateCcw, Save, Share2, Loader } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useStore } from '../store/useStore';
 import { themes, getDerivedColors } from '../theme/colors';
@@ -18,48 +20,67 @@ export default function ContextReaderScreen() {
   const store = useStore();
   const theme = themes[store.currentTheme as keyof typeof themes] || themes['Dark Void'];
   const derived = getDerivedColors(theme);
+  const memeViewRef = useRef<ViewShot>(null);
+  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (store.isLoadingTextMeme || store.isGeneratingTextImage) {
+      Animated.loop(
+        Animated.timing(spinAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ).start();
+    } else {
+      spinAnim.setValue(0);
+    }
+  }, [store.isLoadingTextMeme, store.isGeneratingTextImage]);
+
+  const spinInterp = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const handleGenerateTextMeme = async () => {
-    if (!store.contextInput.trim()) return;
+    if (!store.textContextInput.trim()) return;
     store.setIsLoadingTextMeme(true);
     try {
-      const [top, bottom] = await generateMemeTextSuggestions(store.contextInput);
+      const [top, bottom] = await generateMemeTextSuggestions(store.textContextInput);
       store.setTextTopSuggestion(top);
       store.setTextBottomSuggestion(bottom);
 
-      const uri = await generateImageFromPrompt(store.contextInput);
-      if (uri) store.setAiBgBitmap(uri);
-      else Alert.alert('Fond IA', 'Pollinations utilisé en secours au prochain essai.');
+      const uri = await generateImageFromPrompt(store.textContextInput);
+      if (uri) store.setTextBgBitmap(uri);
+      else Alert.alert(t('ai_bg_title', store.currentLanguage), 'Pollinations backup used.');
     } finally {
       store.setIsLoadingTextMeme(false);
     }
   };
 
   const handleGenerateAiBg = async () => {
-    if (!store.contextInput.trim()) return;
-    store.setIsGeneratingImage(true);
+    if (!store.textContextInput.trim()) return;
+    store.setIsGeneratingTextImage(true);
     try {
-      const uri = await generateImageFromPrompt(store.contextInput);
-      if (uri) store.setAiBgBitmap(uri);
+      const uri = await generateImageFromPrompt(store.textContextInput);
+      if (uri) store.setTextBgBitmap(uri);
     } finally {
-      store.setIsGeneratingImage(false);
+      store.setIsGeneratingTextImage(false);
     }
   };
 
   const handleSave = async () => {
-    const meme = await saveMeme({
-      type: 'TEXT',
-      contextText: store.contextInput,
-      topText: store.textTopSuggestion,
-      bottomText: store.textBottomSuggestion,
-      bgImageUri: store.aiBgBitmap,
-    });
-    store.addSavedMeme(meme);
-    Alert.alert(t('save_success', store.currentLanguage));
+    try {
+      const meme = await saveMeme({
+        type: 'TEXT',
+        contextText: store.textContextInput,
+        topText: store.textTopSuggestion,
+        bottomText: store.textBottomSuggestion,
+        bgImageUri: store.textBgBitmap,
+      });
+      store.addSavedMeme(meme);
+      Alert.alert(t('save_success', store.currentLanguage));
+    } catch { Alert.alert('Erreur', 'Echec sauvegarde'); }
   };
 
   const handleShare = () => {
-    shareMeme({ topText: store.textTopSuggestion, bottomText: store.textBottomSuggestion });
+    shareMeme({ topText: store.textTopSuggestion, bottomText: store.textBottomSuggestion, viewRef: memeViewRef.current });
   };
 
   return (
@@ -70,11 +91,11 @@ export default function ContextReaderScreen() {
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 }}>
           <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#3D3D3D', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ fontSize: 24, color: '#E5E5E5' }}>🤖</Text>
+            <Cpu size={22} color={theme.accentColor} strokeWidth={1.5} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.aiTitle, { color: '#E5E5E5' }]}>Ready to transform your vibe.</Text>
-            <Text style={[styles.aiSubtitle, { color: '#C2C2C2' }]}>Context Reader mode is active</Text>
+            <Text style={[styles.aiTitle, { color: '#E5E5E5' }]}>{t('ready_to_transform', store.currentLanguage)}</Text>
+            <Text style={[styles.aiSubtitle, { color: '#C2C2C2' }]}>{t('context_reader_active', store.currentLanguage)}</Text>
           </View>
         </View>
       </View>
@@ -94,37 +115,48 @@ export default function ContextReaderScreen() {
         placeholderTextColor="#686868"
         multiline
         numberOfLines={4}
-        value={store.contextInput}
-        onChangeText={store.setContextInput}
+        value={store.textContextInput}
+        onChangeText={store.setTextContextInput}
       />
 
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={handleGenerateTextMeme}
-        disabled={store.isLoadingTextMeme || !store.contextInput.trim()}
+        disabled={store.isLoadingTextMeme || !store.textContextInput.trim()}
       >
         <LinearGradient
           colors={['#8B5CF6', '#6366F1', '#3B82F6']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.generateBtn, { opacity: store.isLoadingTextMeme || !store.contextInput.trim() ? 0.5 : 1 }]}
+          style={[styles.generateBtn, { opacity: store.isLoadingTextMeme || !store.textContextInput.trim() ? 0.5 : 1 }]}
         >
-          <Text style={styles.generateBtnIcon}>✨</Text>
+          <Sparkles size={18} color="#FFFFFF" strokeWidth={1.5} />
           <Text style={styles.generateBtnText}>
-            {store.isLoadingTextMeme ? t('loading', store.currentLanguage) : "GÉNÉRER LE MEME IA"}
+            {store.isLoadingTextMeme ? t('loading', store.currentLanguage) : t('generate_text_meme', store.currentLanguage)}
           </Text>
         </LinearGradient>
       </TouchableOpacity>
 
+      {(store.isLoadingTextMeme || store.isGeneratingTextImage) && (
+        <View style={[styles.loadingCard, { backgroundColor: derived.cardBackground }]}>
+          <Animated.View style={{ transform: [{ rotate: spinInterp }] }}>
+            <Loader size={32} color={theme.accentColor} strokeWidth={1.5} />
+          </Animated.View>
+          <Text style={{ color: derived.secondaryTextColor, marginTop: 8 }}>
+            {store.isGeneratingTextImage ? t('loading', store.currentLanguage) + ' image...' : t('loading', store.currentLanguage)}
+          </Text>
+        </View>
+      )}
+
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
         <Text style={[styles.sectionTitle, { color: '#FFFFFF', flex: 1 }]}>
-          🖼 Fond généré par IA :
+          {t('ai_bg_title', store.currentLanguage)}
         </Text>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleGenerateAiBg}
-          disabled={store.isGeneratingImage || !store.contextInput.trim()}
-          style={[styles.genBgBtn, { opacity: store.isGeneratingImage || !store.contextInput.trim() ? 0.5 : 1 }]}
+          disabled={store.isGeneratingTextImage || !store.textContextInput.trim()}
+          style={[styles.genBgBtn, { opacity: store.isGeneratingTextImage || !store.textContextInput.trim() ? 0.5 : 1 }]}
         >
           <LinearGradient
             colors={['#10B981', '#059669']}
@@ -132,8 +164,9 @@ export default function ContextReaderScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.genBgBtnGrad}
           >
+            <RotateCcw size={14} color="#FFFFFF" strokeWidth={2} />
             <Text style={styles.genBgBtnText}>
-              {store.isGeneratingImage ? '🔄' : '🎨 Nouveau Fond'}
+              {t('subtitle_label', store.currentLanguage)}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -141,48 +174,34 @@ export default function ContextReaderScreen() {
 
       {(store.textTopSuggestion || store.textBottomSuggestion) && (
         <>
-          <Text style={[styles.previewLabel, { color: '#E5E5E5' }]}>Aperçu :</Text>
-          <MemeCardPreview
-            templateIndex={store.selectedPresetBgIndex}
-            topText={store.textTopSuggestion}
-            bottomText={store.textBottomSuggestion}
-            customBgUri={store.aiBgBitmap}
-          />
+          <Text style={[styles.previewLabel, { color: '#E5E5E5' }]}>{t('preview_label', store.currentLanguage)}</Text>
+          <ViewShot ref={memeViewRef} options={{ format: 'png', quality: 0.9 }}>
+            <MemeCardPreview
+              templateIndex={store.textBgIndex}
+              topText={store.textTopSuggestion}
+              bottomText={store.textBottomSuggestion}
+              customBgUri={store.textBgBitmap}
+            />
+          </ViewShot>
           <View style={styles.actions}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSave}
-              style={styles.actionBtnWrapper}
-            >
-              <LinearGradient
-                colors={['#FFFFFF', '#E5E5E5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionBtnGrad}
-              >
-                <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>💾 {t('save', store.currentLanguage)}</Text>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleSave} style={styles.actionBtnWrapper}>
+              <LinearGradient colors={['#FFFFFF', '#E5E5E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
+                <Save size={16} color="#0A0A0A" strokeWidth={1.5} />
+                <Text style={[styles.actionBtnText, { color: '#0A0A0A' }]}>{t('save', store.currentLanguage)}</Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleShare}
-              style={styles.actionBtnWrapper}
-            >
-              <LinearGradient
-                colors={['#1D1D1D', '#2D2D2D']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionBtnGrad}
-              >
-                <Text style={[styles.actionBtnText, { color: '#E5E5E5' }]}>↗️ {t('share', store.currentLanguage)}</Text>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleShare} style={styles.actionBtnWrapper}>
+              <LinearGradient colors={['#1D1D1D', '#2D2D2D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
+                <Share2 size={16} color="#E5E5E5" strokeWidth={1.5} />
+                <Text style={[styles.actionBtnText, { color: '#E5E5E5' }]}>{t('share', store.currentLanguage)}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         </>
       )}
 
-      {store.contextInput.trim() && (
-        <MultimediaStudioSection contextText={store.contextInput} />
+      {store.textContextInput.trim() && (
+        <MultimediaStudioSection contextText={store.textContextInput} />
       )}
     </ScrollView>
   );
@@ -231,8 +250,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 9999,
+    flexDirection: 'row',
+    gap: 6,
   },
   genBgBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  loadingCard: { borderRadius: 16, padding: 20, alignItems: 'center' },
   previewLabel: { fontSize: 13, fontWeight: '600', marginTop: 4 },
   actions: { flexDirection: 'row', gap: 12 },
   actionBtnWrapper: { flex: 1, borderRadius: 9999, overflow: 'hidden' },
@@ -243,6 +265,8 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     borderWidth: 1,
     borderColor: 'rgba(229,229,229,0.15)',
+    flexDirection: 'row',
+    gap: 6,
   },
   actionBtnText: { fontSize: 14, fontWeight: '700' },
 });

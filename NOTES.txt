@@ -29,4 +29,104 @@ Je ne vois pas les boutons de creation/generation de Stickeurs, GIFS, ou meme sh
 [2] Je veux que le fond des interfaces de l'app possede des emoji en arriere plan qui s'adapte en fonction du theme actuel !
 [3] Durant le chargement de l'app apres la page de presentation, je veux une animation sur l'emoji qui sourir( anime cet emoji ) quand la bar de progression est en train de ce remplir !
 ----------------
+ Base de donne POSGRE.SQL
+ 
+=========================================================================
+Mise a jour :
+[1] Je veux que l'app genere des memes-texte, images, Gifs, et short videos a partir du contexte founit par l'utilisateur.
+[2] Le systeme de traduction de langue doit traduire tous les interfaces de l'app en fonction de la langue selectionner.
+[3] Ajustement, enleve l'affichage de la section de ICT202 G2 PROJECT 0 AI Online, sa na rien a faire sur les interfaces.
+[4] Je veux que l'app genere de vrais contenu a partir du contexte en utulisant des cles d'api d'IA
+=========================================================================
+[ Mise a jour : Je veux la totalite de ce projet android entierrement en React-native CLI complete en gardent exactement les meme intrefaces, animations, pages, fonctionalites et sortit exacte pour une continuitee de developpement ! ]
+---
+La generation de meme ne fonctone toujours pas correctement en fonction du context( emoji : genere un emoji appropriee au contexte avec animation, Stickeurs: genere une image de fond appropriee et un texte par dessus decrivant la situation, Gifs: petite animation avec des stickman dans le contexte ), Corrige !
+=========================================================================
+La generation de meme ne fonctone toujours pas correctement en fonction du context( emoji : genere un emoji appropriee au contexte avec animation, Stickeurs: genere une image de fond appropriee et un texte par dessus decrivant la situation, Gifs: petite animation avec des stickman dans le contexte ), de meme avec les voices et les photos importer. Corrige !
 
+EX : Quand le prof dit qu'il n'y a pas rattrapage alors que tous les etudiants ont eu 5/20...
+
+
+==============================================================
+[1] J'ai remplacer la cle d'api EDEN expiree( status : Valide )
+[2] j'ai ajouter des cles supllementaire dans le '.env', utilise les toutes en cas d'echec/expiration d'une l'autre prend la suite et vice versa : KILPY_API_KEY, API_LEAGUE_KEY
+
+[3] peut tu utiliser cette methode/fonction comme support pour la generation de centenu memes et autres :
+[ Generate a simple image ]
+- To generate an image using GPT Image, use the puter.ai.txt2img() function:
+
+puter.ai.txt2img("A peaceful mountain landscape at sunset")
+    .then(imageElement => {
+        document.body.appendChild(imageElement);
+    });
+
+[ Use Puter.js for text-to-speech conversion ]
+- To convert text to speech using Puter.js, use the puter.ai.txt2speech() function:
+
+puter.ai.txt2speech("Hello, world! This is text-to-speech using Puter.js.")
+    .then((audio) => {
+        audio.play();
+    });
+===============================================================
+
+const FALLBACK_GIFS: GiphyResult[] = [
+  { url: 'https://media0.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', previewUrl: 'https://media0.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif', title: 'exciting minions' },
+  { url: 'https://media3.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif', previewUrl: 'https://media3.giphy.com/media/26ufdipQqU2lhNA4g/200.gif', title: 'funny face' },
+  { url: 'https://media0.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif', previewUrl: 'https://media0.giphy.com/media/JIX9t2j0ZTN9S/200.gif', title: 'screaming cat' },
+  { url: 'https://media2.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif', previewUrl: 'https://media2.giphy.com/media/l0HlNQ03J5JxX6lva/200.gif', title: 'dancing' },
+  { url: 'https://media1.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif', previewUrl: 'https://media1.giphy.com/media/3oriO0OEd9QIDdllqo/200.gif', title: 'crying laughing' },
+  { url: 'https://media2.giphy.com/media/l4FGI8dL6CqSvvo3i/giphy.gif', previewUrl: 'https://media2.giphy.com/media/l4FGI8dL6CqSvvo3i/200.gif', title: 'angry' },
+  { url: 'https://media2.giphy.com/media/3o7abB06u9bNzA8lu8/giphy.gif', previewUrl: 'https://media2.giphy.com/media/3o7abB06u9bNzA8lu8/200.gif', title: 'love' },
+  { url: 'https://media4.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', previewUrl: 'https://media4.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif', title: 'money' },
+  { url: 'https://media2.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif', previewUrl: 'https://media2.giphy.com/media/26ufdipQqU2lhNA4g/200.gif', title: 'sleepy' },
+  { url: 'https://media0.giphy.com/media/3oKIPnAiaMCws8n5DG/giphy.gif', previewUrl: 'https://media0.giphy.com/media/3oKIPnAiaMCws8n5DG/200.gif', title: 'family' },
+];
+
+GEMINI_API_KEY=AQ.Ab8RN6JkZYBCBVX0Si5_gTIN3zkxfk5zMUoKPbrjgEEw3IHI1A
+GIPHY_API_KEY=qAm9fTdRF2ZSsZf0exVWyliZZMzThJhA
+EDEN_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTlhMzAyNjAtNjQzYy00YTQ1LTg4MzMtMDIzNzQ3ZmYyZTNhIiwidHlwZSI6ImFwaV90b2tlbiJ9.HMeNrs3sLuvf5GMWUGkinvS-L6iq0n2F-JdI_L1eUf8
+POLINATION_AI_API_KEY=sk_TFInwSEfBr24QijdhDeSpfimebdRdbJD
+PICSART_API_KEY=paat-pmCCSTKNyBcFmpryWb0E5wcZVXH
+KILPY_API_KEY=voir_fichier_.env
+API_LEAGUE_KEY=voir_fichier_.env
+IMAGE_GPT_API_KEY=voir_fichier_.env
+OPEN_ROUTE_API_KEY=voir_fichier_.env
+
+
+Ajustement : [1] sur la page d'acceuil(presentation), ajuste l'affichage des emoji animee en fond pour qu'ils soit tous centralisee a l'arriere( ils ne sont pas tous visble et sont trop a droit de l'ecran ). Aussi change l'animation de chargement a l'ouverture de l'app( au lieu de l'emoji qui ce remplit remplace pas des emoji qui interagissent entre eux faisant une animation drole. ) [2] Remplace moi les icons de navigation dans l'app par des icon/image associer au theme et au fond de l'app(Je ne veux pas de stickeurs, de meme dans la section des parametres ). [3] Remarque, le partage de meme(Meme/Stickeur/GIFs) apres leurs generation me renvoi plutot le texte-meme au lieur de toute l'image, pourquoi ? [4] La generation de gifs ne pas encore tous a fait sa( sa doit animee le contenu de l'image, pas l'image qui bouge de haut en bas ), de meme pour les short video, c'est le contenu qui est animee, pas l'image entiere. [5] J'ai encore ajouter une cle 'OPEN_ROUTE_API_KEY', utilise la aussi en cas de fallback d'un et d'autre(mieux vaux avoir plusieurs cles qu'une seule ! ) [6] Je veux des animation d'emoji sur tous les page de l'app( des petits emoji qui survole toutes les page/interfaces avec animation pour donner une expression d'etre entouree par ceux si... ) [7] Fait ces mise a jour et rebuild moi l'apk complet a la raccine !
+
+[1] L'audio ne fonctione toujours pas( l'app sort au lancement ! ) [2] Le telechargement de contenu/meme ne fonctione plus dans l'app ! [3] J'ai ajouter une nouvelle cle d'api 'GROK_API_KEY' , tu sait quoi faire avec !
+[4] Etant donnee que ma cle d'api gemini derange, essais d'utiliser cette methode comme support avec les autre dans le cas ou Gemini ne repond toujours pas :
+=========================================================
+import { GoogleGenAI } from "@google/genai";
+import * as fs from "node:fs";
+
+async function main() {
+
+  const ai = new GoogleGenAI({});
+
+  const prompt =
+    "Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme";
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-flash-image",
+    contents: prompt,
+  });
+  for (const part of response.candidates[0].content.parts) {
+    if (part.text) {
+      console.log(part.text);
+    } else if (part.inlineData) {
+      const imageData = part.inlineData.data;
+      const buffer = Buffer.from(imageData, "base64");
+      fs.writeFileSync("gemini-native-image.png", buffer);
+      console.log("Image saved as gemini-native-image.png");
+    }
+  }
+}
+=====================================================================
+Il y'a plusieurs cle dans le .env essaie avec dautres si gemini derange encore ...
+
+
+[1] Le micro dit "impossible de demarer le micro", s-il te plait corrige cette erreur( le micro fonctionner alors pourquoi sa fait sa maintenant ? : react-native-audio-recorder-player )
+[2] Le telechargement du contenu meme dit encore "Echec", corrige !
+[ Remarque, dans les service de GIPHY(ou sont fichier de service), pourquoi le GIFS(Fallback) ne s'affiche t'ils pas dans comme une option de selection apres l'analyse d'image et meme generer( sa pourait etre tres propre si c'est visible dans l'app ). Peut tu le faire, de meme avec d'autre ensemble comme stickeurs et short videos sa aiderai vraiment ?

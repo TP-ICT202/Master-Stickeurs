@@ -1,16 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, Alert } from 'react-native';
+import { Globe, Award, Palette, Sliders, Settings as SettingsIcon, Check, Key } from 'lucide-react-native';
 import { useStore } from '../store/useStore';
 import { themes, type ThemeName, getDerivedColors } from '../theme/colors';
 import { t } from '../utils/i18n';
 import type { Language, Edition } from '../types';
 
 const languages: Language[] = ['FR', 'EN', 'ES'];
-const editions: { key: Edition; color: string }[] = [
-  { key: 'Standard', color: '#94A3B8' },
-  { key: 'Pro', color: '#38BDF8' },
-  { key: 'Enterprise', color: '#FBBF24' },
-  { key: 'Developer', color: '#A855F7' },
+const editions: { key: Edition; color: string; features: string[] }[] = [
+  { key: 'Standard', color: '#94A3B8', features: ['Generation de base', 'Formats standards (PNG/JPG)', 'Filtres essentiels'] },
+  { key: 'Pro', color: '#38BDF8', features: ['Generation illimitee', 'Export HD (1080p)', 'Tous les filtres', 'Animation GIF/Video'] },
+  { key: 'Enterprise', color: '#FBBF24', features: ['Tout Pro', 'Partage collaboratif', 'Marque blanche', 'Export 4K', 'API access'] },
+  { key: 'Developer', color: '#A855F7', features: ['Tout Enterprise', 'Console debug Gemini', 'Logs IA temps reel', 'Mode developeur', 'Tests automatises'] },
 ];
 
 const allThemes: ThemeName[] = ['Dark Void', 'Cosmic Slate', 'Cyber Neon', 'Rose Gold', 'Solar Eclipse', 'Pure Light'];
@@ -33,7 +34,7 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={[styles.headerCard, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
         <View style={[styles.headerIconContainer, { backgroundColor: theme.accentColor + '25', borderColor: theme.accentColor + '50' }]}>
-          <Text style={{ fontSize: 28 }}>⚙️</Text>
+          <SettingsIcon size={28} color={theme.accentColor} strokeWidth={1.5} />
         </View>
         <Text style={[styles.headerTitle, { color: derived.textColor }]}>
           {t('settings_global', store.currentLanguage)}
@@ -44,9 +45,12 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
-        <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
-          🌐 {t('language_label', store.currentLanguage) || t('language', store.currentLanguage)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Globe size={14} color={derived.textColor + '99'} />
+          <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
+            {t('language_label', store.currentLanguage) || t('language', store.currentLanguage)}
+          </Text>
+        </View>
         <View style={[styles.pillContainer, { backgroundColor: theme.baseColor, borderColor: derived.borderColor }]}>
           {languages.map((lang) => (
             <TouchableOpacity
@@ -69,9 +73,12 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
-        <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
-          🎖️ {t('edition_label', store.currentLanguage) || t('edition', store.currentLanguage)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Award size={14} color={derived.textColor + '99'} />
+          <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
+            {t('edition_label', store.currentLanguage) || t('edition', store.currentLanguage)}
+          </Text>
+        </View>
         {editions.map((ed) => {
           const isSelected = store.currentEdition === ed.key;
           return (
@@ -100,6 +107,16 @@ export default function SettingsScreen() {
                     : ed.key === 'Enterprise' ? (t('edition_enterprise', store.currentLanguage) || 'Partages collaboratifs & exports')
                     : (t('edition_developer', store.currentLanguage) || 'Console debug & logs IA Gemini')}
                 </Text>
+                {isSelected && (
+                  <View style={{ marginTop: 8, gap: 4 }}>
+                    {ed.features.map((f, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: ed.color }} />
+                        <Text style={{ color: derived.secondaryTextColor, fontSize: 11 }}>{f}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -107,9 +124,12 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
-        <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
-          🎨 {t('theme_label', store.currentLanguage) || t('theme', store.currentLanguage)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Palette size={14} color={derived.textColor + '99'} />
+          <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
+            {t('theme_label', store.currentLanguage) || t('theme', store.currentLanguage)}
+          </Text>
+        </View>
         {allThemes.map((tName) => {
           const isSelected = store.currentTheme === tName;
           const colors = themeColorMap[tName] || { base: '#0A0A0A', accent: '#6B62F2' };
@@ -127,16 +147,53 @@ export default function SettingsScreen() {
                 <View style={[styles.themeDotAccent, { backgroundColor: colors.accent }]} />
               </View>
               <Text style={[styles.themeName, { color: derived.textColor }]}>{tName}</Text>
-              {isSelected && <Text style={{ color: theme.accentColor, fontSize: 16, fontWeight: '700' }}>✓</Text>}
+              {isSelected && <Check size={16} color={theme.accentColor} strokeWidth={3} />}
             </TouchableOpacity>
           );
         })}
       </View>
 
       <View style={[styles.section, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
-        <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
-          ⚙️ {t('preferences_label', store.currentLanguage) || t('other_prefs', store.currentLanguage)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Key size={14} color={theme.accentColor} />
+          <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
+            Clé API Gemini
+          </Text>
+        </View>
+        <TextInput
+          style={[styles.apiKeyInput, { color: '#E5E5E5', borderColor: derived.borderColor, backgroundColor: 'rgba(29,29,29,0.85)' }]}
+          value={store.userApiKey}
+          onChangeText={store.setUserApiKey}
+          placeholder="AIzaSy... (ta cle Gemini)"
+          placeholderTextColor="#686868"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+        />
+        {store.userApiKey.trim() && (
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                'Test API',
+                'Test avec le store uniquement. Les appels reels utiliseront cette cle.',
+              );
+            }}
+            style={{ alignSelf: 'flex-end' }}
+          >
+            <Text style={{ color: theme.accentColor, fontSize: 11, fontWeight: '700' }}>
+              Tester la connexion
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: derived.cardBackground, borderColor: derived.borderColor }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Sliders size={14} color={derived.textColor + '99'} />
+          <Text style={[styles.sectionTitle, { color: derived.textColor + '99' }]}>
+            {t('preferences_label', store.currentLanguage) || t('other_prefs', store.currentLanguage)}
+          </Text>
+        </View>
         <View style={styles.toggleRow}>
           <View style={styles.toggleInfo}>
             <Text style={[styles.toggleLabel, { color: derived.textColor }]}>
@@ -177,6 +234,10 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  apiKeyInput: {
+    borderRadius: 10, borderWidth: 1, padding: 12, fontSize: 13,
+    fontFamily: 'monospace',
+  },
   content: { padding: 16, gap: 16, paddingBottom: 40 },
   headerCard: {
     borderRadius: 24,

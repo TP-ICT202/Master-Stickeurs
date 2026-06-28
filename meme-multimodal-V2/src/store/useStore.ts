@@ -7,18 +7,18 @@ export interface MemeState {
   currentLanguage: Language;
   currentEdition: Edition;
   currentTheme: string;
+  userApiKey: string;
   isSafeSearchEnabled: boolean;
   isSoundEnabled: boolean;
   savedMemes: MemeEntity[];
 
-  contextInput: string;
+  textContextInput: string;
   textTopSuggestion: string;
   textBottomSuggestion: string;
   isLoadingTextMeme: boolean;
-  selectedPresetBgIndex: number;
-  aiBgBitmap: string | null;
-  imagePrompt: string;
-  isGeneratingImage: boolean;
+  textBgIndex: number;
+  textBgBitmap: string | null;
+  isGeneratingTextImage: boolean;
 
   isRecording: boolean;
   recordedAudioPath: string | null;
@@ -26,6 +26,9 @@ export interface MemeState {
   audioMemeTop: string;
   audioMemeBottom: string;
   isLoadingAudioMeme: boolean;
+  audioBgIndex: number;
+  audioBgBitmap: string | null;
+  isGeneratingAudioImage: boolean;
 
   statusImagePath: string | null;
   statusTopText: string;
@@ -33,6 +36,9 @@ export interface MemeState {
   isAnalyzingStatusImage: boolean;
   statusSubMode: StatusSubMode;
   showImageEditor: boolean;
+  contextInput: string;
+  statusBgIndex: number;
+  isGeneratingStatusImage: boolean;
 
   brightness: number;
   contrast: number;
@@ -67,20 +73,20 @@ export interface MemeState {
   setLanguage: (lang: Language) => void;
   setEdition: (edition: Edition) => void;
   setTheme: (theme: string) => void;
+  setUserApiKey: (v: string) => void;
   setSafeSearch: (v: boolean) => void;
   setSoundEnabled: (v: boolean) => void;
   setSavedMemes: (memes: MemeEntity[]) => void;
   addSavedMeme: (meme: MemeEntity) => void;
   removeSavedMeme: (id: number) => void;
 
-  setContextInput: (v: string) => void;
+  setTextContextInput: (v: string) => void;
   setTextTopSuggestion: (v: string) => void;
   setTextBottomSuggestion: (v: string) => void;
   setIsLoadingTextMeme: (v: boolean) => void;
-  setSelectedPresetBgIndex: (v: number) => void;
-  setAiBgBitmap: (v: string | null) => void;
-  setImagePrompt: (v: string) => void;
-  setIsGeneratingImage: (v: boolean) => void;
+  setTextBgIndex: (v: number) => void;
+  setTextBgBitmap: (v: string | null) => void;
+  setIsGeneratingTextImage: (v: boolean) => void;
 
   setIsRecording: (v: boolean) => void;
   setRecordedAudioPath: (v: string | null) => void;
@@ -88,6 +94,9 @@ export interface MemeState {
   setAudioMemeTop: (v: string) => void;
   setAudioMemeBottom: (v: string) => void;
   setIsLoadingAudioMeme: (v: boolean) => void;
+  setAudioBgIndex: (v: number) => void;
+  setAudioBgBitmap: (v: string | null) => void;
+  setIsGeneratingAudioImage: (v: boolean) => void;
 
   setStatusImagePath: (v: string | null) => void;
   setStatusTopText: (v: string) => void;
@@ -95,6 +104,9 @@ export interface MemeState {
   setIsAnalyzingStatusImage: (v: boolean) => void;
   setStatusSubMode: (v: StatusSubMode) => void;
   setShowImageEditor: (v: boolean) => void;
+  setContextInput: (v: string) => void;
+  setStatusBgIndex: (v: number) => void;
+  setIsGeneratingStatusImage: (v: boolean) => void;
 
   setBrightness: (v: number) => void;
   setContrast: (v: number) => void;
@@ -137,18 +149,18 @@ export const useStore = create<MemeState>((set) => ({
   currentLanguage: 'FR',
   currentEdition: 'Standard',
   currentTheme: 'Dark Void',
+  userApiKey: '',
   isSafeSearchEnabled: true,
   isSoundEnabled: false,
   savedMemes: [],
 
-  contextInput: '',
+  textContextInput: '',
   textTopSuggestion: '',
   textBottomSuggestion: '',
   isLoadingTextMeme: false,
-  selectedPresetBgIndex: 0,
-  aiBgBitmap: null,
-  imagePrompt: '',
-  isGeneratingImage: false,
+  textBgIndex: 0,
+  textBgBitmap: null,
+  isGeneratingTextImage: false,
 
   isRecording: false,
   recordedAudioPath: null,
@@ -156,6 +168,9 @@ export const useStore = create<MemeState>((set) => ({
   audioMemeTop: '',
   audioMemeBottom: '',
   isLoadingAudioMeme: false,
+  audioBgIndex: 0,
+  audioBgBitmap: null,
+  isGeneratingAudioImage: false,
 
   statusImagePath: null,
   statusTopText: '',
@@ -163,6 +178,11 @@ export const useStore = create<MemeState>((set) => ({
   isAnalyzingStatusImage: false,
   statusSubMode: 'PHOTO_REMIXER',
   showImageEditor: false,
+  contextInput: '',
+  statusBgIndex: 0,
+  isGeneratingStatusImage: false,
+
+  imagePrompt: '',
 
   brightness: 1.0,
   contrast: 1.0,
@@ -197,20 +217,20 @@ export const useStore = create<MemeState>((set) => ({
   setLanguage: (lang) => set({ currentLanguage: lang }),
   setEdition: (edition) => set({ currentEdition: edition }),
   setTheme: (theme) => set({ currentTheme: theme }),
+  setUserApiKey: (v) => set({ userApiKey: v }),
   setSafeSearch: (v) => set({ isSafeSearchEnabled: v }),
   setSoundEnabled: (v) => set({ isSoundEnabled: v }),
   setSavedMemes: (memes) => set({ savedMemes: memes }),
   addSavedMeme: (meme) => set((s) => ({ savedMemes: [meme, ...s.savedMemes] })),
   removeSavedMeme: (id) => set((s) => ({ savedMemes: s.savedMemes.filter((m) => m.id !== id) })),
 
-  setContextInput: (v) => set({ contextInput: v }),
+  setTextContextInput: (v) => set({ textContextInput: v }),
   setTextTopSuggestion: (v) => set({ textTopSuggestion: v }),
   setTextBottomSuggestion: (v) => set({ textBottomSuggestion: v }),
   setIsLoadingTextMeme: (v) => set({ isLoadingTextMeme: v }),
-  setSelectedPresetBgIndex: (v) => set({ selectedPresetBgIndex: v, aiBgBitmap: null }),
-  setAiBgBitmap: (v) => set({ aiBgBitmap: v }),
-  setImagePrompt: (v) => set({ imagePrompt: v }),
-  setIsGeneratingImage: (v) => set({ isGeneratingImage: v }),
+  setTextBgIndex: (v) => set({ textBgIndex: v, textBgBitmap: null }),
+  setTextBgBitmap: (v) => set({ textBgBitmap: v }),
+  setIsGeneratingTextImage: (v) => set({ isGeneratingTextImage: v }),
 
   setIsRecording: (v) => set({ isRecording: v }),
   setRecordedAudioPath: (v) => set({ recordedAudioPath: v }),
@@ -218,6 +238,9 @@ export const useStore = create<MemeState>((set) => ({
   setAudioMemeTop: (v) => set({ audioMemeTop: v }),
   setAudioMemeBottom: (v) => set({ audioMemeBottom: v }),
   setIsLoadingAudioMeme: (v) => set({ isLoadingAudioMeme: v }),
+  setAudioBgIndex: (v) => set({ audioBgIndex: v, audioBgBitmap: null }),
+  setAudioBgBitmap: (v) => set({ audioBgBitmap: v }),
+  setIsGeneratingAudioImage: (v) => set({ isGeneratingAudioImage: v }),
 
   setStatusImagePath: (v) => set({ statusImagePath: v }),
   setStatusTopText: (v) => set({ statusTopText: v }),
@@ -225,6 +248,9 @@ export const useStore = create<MemeState>((set) => ({
   setIsAnalyzingStatusImage: (v) => set({ isAnalyzingStatusImage: v }),
   setStatusSubMode: (v) => set({ statusSubMode: v }),
   setShowImageEditor: (v) => set({ showImageEditor: v }),
+  setContextInput: (v) => set({ contextInput: v }),
+  setStatusBgIndex: (v) => set({ statusBgIndex: v, statusImagePath: null }),
+  setIsGeneratingStatusImage: (v) => set({ isGeneratingStatusImage: v }),
 
   setBrightness: (v) => set({ brightness: v }),
   setContrast: (v) => set({ contrast: v }),

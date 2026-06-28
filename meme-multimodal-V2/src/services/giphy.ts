@@ -8,7 +8,7 @@ export interface GiphyResult {
   title: string;
 }
 
-const FALLBACK_GIFS: GiphyResult[] = [
+export const FALLBACK_GIFS: GiphyResult[] = [
   { url: 'https://media0.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', previewUrl: 'https://media0.giphy.com/media/l0MYt5jPR6QX5pnqM/200.gif', title: 'exciting minions' },
   { url: 'https://media3.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif', previewUrl: 'https://media3.giphy.com/media/26ufdipQqU2lhNA4g/200.gif', title: 'funny face' },
   { url: 'https://media0.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif', previewUrl: 'https://media0.giphy.com/media/JIX9t2j0ZTN9S/200.gif', title: 'screaming cat' },
@@ -24,24 +24,54 @@ const FALLBACK_GIFS: GiphyResult[] = [
 export async function searchGif(query: string): Promise<GiphyResult | null> {
   try {
     const res = await fetch(
-      `${BASE_URL}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=1&rating=g`,
+      `${BASE_URL}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=5&rating=g`,
     );
     if (res.ok) {
       const json = await res.json();
-      const gif = json.data?.[0];
-      if (gif && gif.images?.original?.url) {
-        return {
-          url: gif.images.original.url,
-          previewUrl: gif.images.fixed_height?.url ?? gif.images.original.url,
-          title: gif.title ?? '',
-        };
+      const items = json.data ?? [];
+      if (items.length > 0) {
+        const gif = items[0];
+        if (gif && gif.images?.original?.url) {
+          return {
+            url: gif.images.original.url,
+            previewUrl: gif.images.fixed_height?.url ?? gif.images.original.url,
+            title: gif.title ?? '',
+          };
+        }
       }
     }
   } catch {
-    // fallback below
   }
   const idx = Math.abs(hashCode(query)) % FALLBACK_GIFS.length;
   return FALLBACK_GIFS[idx];
+}
+
+export async function searchGifs(query: string, count: number = 6): Promise<GiphyResult[]> {
+  const results: GiphyResult[] = [];
+  try {
+    const res = await fetch(
+      `${BASE_URL}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=${count}&rating=g`,
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const items = json.data ?? [];
+      for (const gif of items) {
+        if (gif && gif.images?.original?.url) {
+          results.push({
+            url: gif.images.original.url,
+            previewUrl: gif.images.fixed_height?.url ?? gif.images.original.url,
+            title: gif.title ?? '',
+          });
+        }
+      }
+    }
+  } catch {
+  }
+  if (results.length === 0) {
+    const shuffled = [...FALLBACK_GIFS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+  return results;
 }
 
 function hashCode(s: string): number {

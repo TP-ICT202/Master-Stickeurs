@@ -29,3 +29,26 @@ export async function searchShortVideo(query: string): Promise<PexelsVideo | nul
     return null;
   }
 }
+
+export async function searchShortVideos(query: string, count: number = 4): Promise<PexelsVideo[]> {
+  if (!API_KEY) return [];
+  try {
+    const res = await fetch(
+      `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=${count}&size=small`,
+      { headers: { Authorization: API_KEY } },
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const items = json.videos ?? [];
+    return items.map((video: any) => {
+      const videoFile = video.video_files?.find((f: any) => f.quality === 'sd') ?? video.video_files?.[0];
+      return {
+        url: videoFile?.link ?? '',
+        previewUrl: video.image ?? '',
+        title: query,
+      };
+    }).filter((v: PexelsVideo) => v.url);
+  } catch {
+    return [];
+  }
+}

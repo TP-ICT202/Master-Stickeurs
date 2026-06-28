@@ -1,11 +1,13 @@
 import {
-  GEMINI_API_KEY, PICSART_API_KEY, EDEN_API_KEY,
-  POLINATION_AI_API_KEY, IMAGE_GPT_API_KEY, PEXELS_API_KEY,
+  GEMINI_API_KEY, DEFAULT_GEMINI_API_KEY, PICSART_API_KEY, EDEN_API_KEY,
+  POLINATION_AI_API_KEY, IMAGE_GPT_API_KEY, PEXELS_API_KEY, GROK_API_KEY,
 } from '../config';
 import { puterTxt2img, puterRemoveBg } from './puter';
 import type { AudioMemeResult } from '../types';
 import RNFS from 'react-native-fs';
 import { mimeFromPath } from '../utils/imageMime';
+import { useStore } from '../store/useStore';
+import { grokGenerateText, grokGenerateImage } from './grok';
 
 const BASE_URL = 'https://generativelanguage.googleapis.com';
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
@@ -25,35 +27,44 @@ function parseGeminiJson(text: string): Record<string, string> {
   }
 }
 
-function geminiHeaders(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': GEMINI_API_KEY,
-  };
-}
-
 async function callGemini(body: object): Promise<string | null> {
-  if (isKeyMissing(GEMINI_API_KEY)) return null;
-  for (const model of MODELS) {
-    try {
-      const url = `${BASE_URL}/v1beta/models/${model}:generateContent`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: geminiHeaders(),
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        console.warn(`[Gemini] ${model} HTTP ${res.status}`);
-        continue;
+  let userKey = '';
+  try { userKey = useStore.getState().userApiKey; } catch {}
+  const keysToTry = [userKey, GEMINI_API_KEY, DEFAULT_GEMINI_API_KEY].filter(k => !isKeyMissing(k));
+  if (keysToTry.length === 0) {
+    console.warn('[Gemini] Aucune clé API valide trouvée. Configure une clé dans Settings ou .env');
+    return null;
+  }
+  for (const key of keysToTry) {
+    for (const model of MODELS) {
+      try {
+        const url = `${BASE_URL}/v1beta/models/${model}:generateContent?key=${key}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const reason = res.status === 429 ? 'QUOTA DÉPASSÉ' : res.status === 403 || res.status === 401 ? 'CLÉ INVALIDE' : `HTTP ${res.status}`;
+          console.warn(`[Gemini] ${model} ${reason}`);
+          if (res.status === 429 || res.status === 403 || res.status === 401) break;
+          continue;
+        }
+        const json = await res.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+        if (text) return text;
+      } catch (e) {
+        console.warn(`[Gemini] ${model} error:`, e);
       }
-      const json = await res.json();
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
-      if (text) return text;
-    } catch (e) {
-      console.warn(`[Gemini] ${model} error:`, e);
     }
   }
   return null;
+}
+
+async function callGrokFallback(body: object): Promise<string | null> {
+  const prompt = (body as any)?.contents?.[0]?.parts?.[0]?.text;
+  if (!prompt || isKeyMissing(GROK_API_KEY)) return null;
+  return grokGenerateText(prompt);
 }
 
 function buildTextBody(prompt: string) {
@@ -61,6 +72,13 @@ function buildTextBody(prompt: string) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { responseMimeType: 'application/json', temperature: 0.9 },
   };
+}
+
+async function callWithFallback(body: object): Promise<string | null> {
+  let result = await callGemini(body);
+  if (result) return result;
+  result = await callGrokFallback(body);
+  return result;
 }
 
 async function callGeminiWithImage(imagePath: string, prompt: string): Promise<string | null> {
@@ -76,7 +94,7 @@ async function callGeminiWithImage(imagePath: string, prompt: string): Promise<s
       }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.85 },
     };
-    return callGemini(body);
+    return callWithFallback(body);
   } catch (e) {
     console.warn('[callGeminiWithImage] error:', e);
     return null;
@@ -84,10 +102,9 @@ async function callGeminiWithImage(imagePath: string, prompt: string): Promise<s
 }
 
 export async function generateMemeTextSuggestions(situation: string): Promise<[string, string]> {
-  if (isKeyMissing(GEMINI_API_KEY)) return keywordFallbackMeme(situation);
   const prompt = `Tu es un générateur de memes humoristique africain. Situation: "${situation}". NE REPETE PAS la situation. Crée un meme ORIGINAL avec argot francophone africain. JSON uniquement: {"top": "ACCROCHE MAJUSCULES", "bottom": "CHUTE MAJUSCULES"}`;
   try {
-    const text = await callGemini(buildTextBody(prompt));
+    const text = await callWithFallback(buildTextBody(prompt));
     if (!text) return keywordFallbackMeme(situation);
     const obj = parseGeminiJson(text);
     return [obj.top || 'GÉNÉRATION VIDÉ', obj.bottom || 'RÉESSAIE PLUS TARD'];
@@ -97,9 +114,6 @@ export async function generateMemeTextSuggestions(situation: string): Promise<[s
 }
 
 export async function transcribeAndGenerateMeme(audioFilePath: string): Promise<AudioMemeResult> {
-  if (isKeyMissing(GEMINI_API_KEY)) {
-    return { transcription: 'Clé API manquante', topText: 'AUDIO SANS CLÉ API', bottomText: 'CONFIGURE GEMINI', emotion: 'confused' };
-  }
   try {
     const base64Audio = await RNFS.readFile(audioFilePath, 'base64');
     const mimeType = audioFilePath.endsWith('.m4a') ? 'audio/mp4'
@@ -114,26 +128,25 @@ export async function transcribeAndGenerateMeme(audioFilePath: string): Promise<
       generationConfig: { responseMimeType: 'application/json' },
     };
 
-    const text = await callGemini(body);
-    if (!text) return { transcription: '', topText: 'GEMINI INJOIGNABLE', bottomText: 'VÉRIFIE CONNEXION ET CLÉ API', emotion: 'confused' };
+    const text = await callWithFallback(body);
+    if (!text) return { transcription: '', topText: 'GÉNÉRATION AUDIO', bottomText: 'VÉRIFIE TA CLÉ API DANS SETTINGS', emotion: 'confused' };
     const obj = parseGeminiJson(text);
     return {
       transcription: obj.transcription || '',
-      topText: obj.top || 'AUDIO ANALYSÉ',
-      bottomText: obj.bottom || 'SANS PUNCHLINE',
-      emotion: obj.emotion || 'confused',
+      topText: obj.top || 'NOTE VOCALE ÉPIQUE',
+      bottomText: obj.bottom || 'PROBLÈME DE RÉSEAU',
+      emotion: obj.emotion || 'surprised',
     };
   } catch (e) {
-    console.warn('[transcribeAndGenerateMeme]', e);
-    return { transcription: '', topText: 'ERREUR AUDIO', bottomText: 'RÉESSAIE', emotion: 'confused' };
+    console.warn('[transcribeAndGenerateMeme] error:', e);
+    return { transcription: '', topText: 'ERREUR AUDIO', bottomText: 'RÉESSAIE PLUS TARD', emotion: 'confused' };
   }
 }
 
 export async function generateVoiceToMemeText(audioTranscript: string): Promise<[string, string]> {
-  if (isKeyMissing(GEMINI_API_KEY)) return ['AUDIO SANS CLÉ', 'SILENCE ASSOURDISSANT'];
   const prompt = `Message vocal: "${audioTranscript}". Meme ORIGINAL style blague africaine. JSON: {"top":"HAUT","bottom":"BAS"}`;
   try {
-    const text = await callGemini(buildTextBody(prompt));
+    const text = await callWithFallback(buildTextBody(prompt));
     if (!text) return ['NOTE VOCALE BUG', 'PROBLÈME RÉSEAU'];
     const obj = parseGeminiJson(text);
     return [obj.top, obj.bottom];
@@ -143,7 +156,6 @@ export async function generateVoiceToMemeText(audioTranscript: string): Promise<
 }
 
 export async function analyzeImageForMeme(imagePath: string): Promise<[string, string]> {
-  if (isKeyMissing(GEMINI_API_KEY)) return ['PHOTO SANS CLÉ API', 'CONFIGURATION VIDE'];
   const prompt = `Analyse cette image en détail (personnes, objets, expressions, contexte, absurdité).
 Génère un meme TRÈS DRÔLE en français argotique d'Afrique francophone basé UNIQUEMENT sur ce que tu VOIS.
 - Décris ce qui se passe visuellement dans ta blague
@@ -167,16 +179,14 @@ export async function generateStickerFromImage(imagePath: string): Promise<[stri
   const prompt = `Analyse cette image. Suggère UN emoji expressif + phrase max 4 mots en argot africain francophone qui commente CE QUI EST VISIBLE dans l'image.
 JSON: {"emoji":"🔥","text":"PHRASE COURTE","description":"ce que tu vois"}`;
 
-  if (!isKeyMissing(GEMINI_API_KEY)) {
-    try {
-      const text = await callGeminiWithImage(imagePath, prompt);
-      if (text) {
-        const obj = parseGeminiJson(text);
-        return [obj.emoji || '😂', obj.text || 'C\'EST GÂTÉ !'];
-      }
-    } catch (e) {
-      console.warn('[generateStickerFromImage]', e);
+  try {
+    const text = await callGeminiWithImage(imagePath, prompt);
+    if (text) {
+      const obj = parseGeminiJson(text);
+      return [obj.emoji || '😂', obj.text || 'C\'EST GÂTÉ !'];
     }
+  } catch (e) {
+    console.warn('[generateStickerFromImage]', e);
   }
   return keywordFallbackSticker('image');
 }
@@ -185,17 +195,15 @@ export async function generateGifQueryFromImage(imagePath: string): Promise<stri
   const prompt = `Analyse cette image. Génère UNE requête GIF en anglais (2-4 mots) pour KLIPY qui correspond à l'action/émotion VISIBLE dans l'image.
 JSON: {"query":"excited celebration","description":"ce que tu vois"}`;
 
-  if (!isKeyMissing(GEMINI_API_KEY)) {
-    try {
-      const text = await callGeminiWithImage(imagePath, prompt);
-      if (text) {
-        const obj = parseGeminiJson(text);
-        const q = (obj.query || 'funny reaction').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-        if (q) return q;
-      }
-    } catch (e) {
-      console.warn('[generateGifQueryFromImage]', e);
+  try {
+    const text = await callGeminiWithImage(imagePath, prompt);
+    if (text) {
+      const obj = parseGeminiJson(text);
+      const q = (obj.query || 'funny reaction').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      if (q) return q;
     }
+  } catch (e) {
+    console.warn('[generateGifQueryFromImage]', e);
   }
   return 'funny reaction meme';
 }
@@ -204,18 +212,16 @@ export async function generateVideoQueryFromImage(imagePath: string): Promise<[s
   const prompt = `Analyse cette image. Crée un titre 2-3 mots + punchline TikTok/Reels basée sur CE QUI EST VISIBLE.
 JSON: {"title":"TITRE","punchline":"PUNCHLINE","videoQuery":"english search term for stock video"}`;
 
-  if (!isKeyMissing(GEMINI_API_KEY)) {
-    try {
-      const text = await callGeminiWithImage(imagePath, prompt);
-      if (text) {
-        const obj = parseGeminiJson(text);
-        return [obj.title || 'ALERTE', obj.punchline || obj.videoQuery || 'C\'EST CHAUD'];
-      }
-    } catch (e) {
-      console.warn('[generateVideoQueryFromImage]', e);
+  try {
+    const text = await callGeminiWithImage(imagePath, prompt);
+    if (text) {
+      const obj = parseGeminiJson(text);
+      return [obj.title || 'ALERTE', obj.punchline || obj.videoQuery || 'C\'EST CHAUD'];
     }
+  } catch (e) {
+    console.warn('[generateVideoQueryFromImage]', e);
   }
-  return ['STORY', 'C\'EST CHAUD !'];
+  return ['ALERTE GÉNÉRALE', 'C\'EST L\'IMAGE QUI PARLE !'];
 }
 
 function pollinationsUrl(prompt: string): string {
@@ -293,9 +299,51 @@ async function generateWithPicsart(prompt: string): Promise<string | null> {
   return null;
 }
 
+async function generateWithGeminiNative(prompt: string): Promise<string | null> {
+  const keysToTry = [useStore.getState().userApiKey, GEMINI_API_KEY, DEFAULT_GEMINI_API_KEY].filter(k => k && !isKeyMissing(k) && k.startsWith('AIzaSy'));
+  if (keysToTry.length === 0) return null;
+  const imgPrompt = `Create a funny meme background image based on: ${prompt}. Make it vibrant, colorful, cartoon style, NO text on the image.`;
+  for (const key of keysToTry) {
+    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+      try {
+        const url = `${BASE_URL}/v1beta/models/${model}:generateContent?key=${key}`;
+        const body = {
+          contents: [{ parts: [{ text: imgPrompt }] }],
+          generationConfig: { responseModalities: ['Text', 'Image'] },
+        };
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) { console.warn(`[Gemini Native Img] ${model} HTTP ${res.status}`); continue; }
+        const json = await res.json();
+        const parts = json.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith('image/')) {
+            const path = `${RNFS.CachesDirectoryPath}/gemini_img_${Date.now()}.png`;
+            await RNFS.writeFile(path, part.inlineData.data, 'base64');
+            console.log('[Gemini Native Img] saved:', path);
+            return `file://${path}`;
+          }
+        }
+      } catch (e) {
+        console.warn(`[Gemini Native Img] ${model} error:`, e);
+      }
+    }
+  }
+  return null;
+}
+
 export async function generateImageFromPrompt(prompt: string): Promise<string | null> {
   if (!prompt.trim()) return null;
   console.log('[generateImageFromPrompt]', prompt.slice(0, 80));
+
+  const native = await generateWithGeminiNative(prompt);
+  if (native) return native;
+
+  const grok = await grokGenerateImage(prompt);
+  if (grok) return grok;
 
   const imageGpt = await generateWithImageGpt(prompt);
   if (imageGpt) return imageGpt;
@@ -364,10 +412,9 @@ export async function removeImageBackground(imagePath: string): Promise<string |
 }
 
 export async function generateStickerSuggestion(contextText: string): Promise<[string, string]> {
-  if (isKeyMissing(GEMINI_API_KEY)) return keywordFallbackSticker(contextText);
   const prompt = `Situation: "${contextText}". Emoji + phrase max 4 mots argot africain. JSON: {"emoji":"🔥","text":"PHRASE"}`;
   try {
-    const text = await callGemini(buildTextBody(prompt));
+    const text = await callWithFallback(buildTextBody(prompt));
     if (!text) return keywordFallbackSticker(contextText);
     const obj = parseGeminiJson(text);
     return [obj.emoji || '😂', obj.text || 'ON EST ENSEMBLE !'];
@@ -377,10 +424,9 @@ export async function generateStickerSuggestion(contextText: string): Promise<[s
 }
 
 export async function generateGifSearchQuery(contextText: string): Promise<string> {
-  if (isKeyMissing(GEMINI_API_KEY)) return keywordFallbackGifQuery(contextText);
   const prompt = `Contexte: "${contextText}". Requête GIF anglaise 2-4 mots pour KLIPY. JSON: {"query":"excited minion"}`;
   try {
-    const text = await callGemini(buildTextBody(prompt));
+    const text = await callWithFallback(buildTextBody(prompt));
     if (!text) return keywordFallbackGifQuery(contextText);
     const result = parseGeminiJson(text).query || 'funny face';
     return result.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim() || 'funny reaction';
@@ -390,10 +436,9 @@ export async function generateGifSearchQuery(contextText: string): Promise<strin
 }
 
 export async function generateVideoStoryboard(contextText: string): Promise<[string, string]> {
-  if (isKeyMissing(GEMINI_API_KEY)) return ['PROJET EN FEU', 'C\'EST GÂTÉ !'];
   const prompt = `Contexte: "${contextText}". Titre 2-3 mots + punchline TikTok. JSON: {"title":"TITRE","punchline":"PUNCHLINE","videoQuery":"english stock video search"}`;
   try {
-    const text = await callGemini(buildTextBody(prompt));
+    const text = await callWithFallback(buildTextBody(prompt));
     if (!text) return ['STORY', 'C\'EST CHAUD !'];
     const obj = parseGeminiJson(text);
     return [obj.title || 'ALERTE', obj.punchline || 'DÉSASTRE'];

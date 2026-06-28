@@ -15,9 +15,16 @@ export async function loadMemes(): Promise<MemeEntity[]> {
 
 export async function saveMeme(meme: Omit<MemeEntity, 'id' | 'timestamp'>): Promise<MemeEntity> {
   const memes = await loadMemes();
-  const newId = memes.length > 0 ? Math.max(...memes.map((m) => m.id)) + 1 : 1;
-  const entity: MemeEntity = { ...meme, id: newId, timestamp: Date.now() };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([entity, ...memes]));
+  const ids = memes.map((m) => typeof m.id === 'number' && !Number.isNaN(m.id) ? m.id : 0);
+  const newId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
+  const entity: MemeEntity = { id: newId, timestamp: Date.now(), ...meme };
+  const payload = JSON.stringify([entity, ...memes]);
+  if (payload.length > 4_000_000) {
+    const trimmed = [entity, ...memes.slice(0, 50)].map((e) => ({ ...e, bgImageUri: null }));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  } else {
+    await AsyncStorage.setItem(STORAGE_KEY, payload);
+  }
   return entity;
 }
 

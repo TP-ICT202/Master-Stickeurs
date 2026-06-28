@@ -1,50 +1,47 @@
-# MemeGen AI - React Native CLI Version
+# MemeGen AI — React Native (TypeScript)
 
-Ce dossier contient la réécriture complète et optimisée en **React Native CLI (TypeScript)** du projet Android d'origine. Toutes les fonctionnalités, interfaces modernes (Dark Mode, cartes glassmorphisme), animations et la logique intelligente de l'API Gemini y sont reproduites à l'identique pour assurer une continuité parfaite de votre développement !
+Frontend mobile de l'application **Master-Stickeurs**. Génération de memes, stickers, GIFs et vidéos courtes à partir de texte, audio et image.
 
-## 🚀 Fonctionnalités Incluses
+## Services
 
-- **Analyseur de Contexte (Meme Studio)** : Saisie libre d'une situation de vie, analyse intelligente via Gemini 3.5 Flash et suggestions de mèmes (Haut/Bas).
-- **Stickers IA de Situation** : Suggestions d'émojis et de phrases ultra-courtes en argot local.
-- **Générateur de requêtes GIF** : Traduction intelligente des contextes en requêtes anglaises hautement précises et rigolotes pour Giphy.
-- **Personnalisation des légendes en direct** : TextInputs interactifs pour ajuster et personnaliser les textes de mèmes suggérés directement sous la preview en temps réel.
-- **Multi-langues instantané** : Support complet FR/EN.
+| Service | Rôle | Fallback |
+|---------|------|----------|
+| `gemini.ts` | API Gemini (`callGemini`) + Grok xAI (`callGrokFallback`) | callWithFallback() |
+| `grok.ts` | Client xAI (compatible OpenAI) | — |
+| `giphy.ts` | Recherche GIFs via Giphy | FALLBACK_GIFS intégrés |
+| `pexels.ts` | Recherche vidéos courtes | — |
+| `eden.ts` | Suppression fond d'image | puterRemoveBg |
+| `puter.ts` | Génération image / remove bg (gratuit) | — |
+| `imagegpt.ts` | Génération image IA | — |
 
----
+## Configuration des clés API
 
-## 🛠️ Instructions d'Installation et de Lancement
+Créer un fichier `.env` à la racine :
 
-### 1. Prérequis
-Assurez-vous que votre environnement de développement React Native CLI est configuré sur votre machine locale (Node.js, JDK, Android Studio SDK, et Xcode pour iOS).
-Consultez la [documentation officielle de React Native](https://reactnative.dev/docs/environment-setup) si nécessaire.
+```env
+DEFAULT_GEMINI_API_KEY=AIzaSy...
+GROK_API_KEY=xai-...
+GIPHY_API_KEY=...
+PEXELS_API_KEY=...
+EDEN_API_KEY=...
+PICSART_API_KEY=...
+IMAGE_GPT_API_KEY=...
+POLINATION_AI_API_KEY=...
+```
 
-### 2. Cloner ou Extraire ce projet
-Extrayez le contenu de ce dossier `react_native_project` sur votre machine locale.
+**Ou** dans l'app : Menu → Settings → saisir la clé Gemini.
 
-### 3. Installer les dépendances
-Ouvrez votre terminal dans le dossier racine du projet React Native et exécutez :
+## Installation
+
 ```bash
 npm install
-# ou
-yarn install
+npx react-native run-android
 ```
 
-*(Si vous développez pour iOS, installez également les CocoaPods :)*
+## Build APK
+
 ```bash
-cd ios && pod install && cd ..
+cd android
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+./gradlew assembleRelease
 ```
-
-### 4. Configurer la Clé API Gemini
-Pour que l'intelligence artificielle fonctionne :
-1. Obtenez une clé API Gemini gratuite sur [Google AI Studio](https://aistudio.google.com/).
-2. Dans l'application mobile, le composant utilise `AsyncStorage` pour stocker de façon sécurisée votre clé API localement. Vous pouvez configurer un écran de saisie rapide ou l'écrire directement par défaut dans le code de `GeminiClient.ts` pour vos tests de prototypes !
-
-### 5. Lancer l'application
-- **Pour Android** :
-  ```bash
-  npx react-native run-android
-  ```
-- **Pour iOS** :
-  ```bash
-  npx react-native run-ios
-  ```
