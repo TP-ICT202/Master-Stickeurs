@@ -352,35 +352,38 @@ function GifContent() {
     if (!hasImage) return;
     store.setIsSearchingGif(true);
     setGifUrl(null);
-    setGifResults([]);
     generateGifQueryFromImage(store.statusImagePath!).then((q) => {
       store.setGifQuery(q);
       return searchGifs(q, 6);
     }).then((results) => {
-      setGifResults(results);
-      if (results.length > 0) setGifUrl(results[0].url);
+      if (results.length > 0) {
+        setGifResults(results);
+        setGifUrl(results[0].url);
+      }
     }).catch((e) => {
       console.warn('[GifContent] Generation error:', e);
       store.setGifQuery('funny reaction');
       searchGifs('funny reaction', 6).then((results) => {
-        setGifResults(results);
-        if (results.length > 0) setGifUrl(results[0].url);
+        if (results.length > 0) {
+          setGifResults(results);
+          setGifUrl(results[0].url);
+        }
       });
     }).finally(() => store.setIsSearchingGif(false));
   }, [hasImage]);
 
   const handleGenerate = async () => {
     store.setIsSearchingGif(true);
-    setGifUrl(null);
-    setGifResults([]);
     try {
       const q = store.statusImagePath
         ? await generateGifQueryFromImage(store.statusImagePath)
         : await generateGifSearchQuery(store.contextInput || store.selectedGifMood);
       store.setGifQuery(q);
       const results = await searchGifs(q, 6);
-      setGifResults(results);
-      if (results.length > 0) setGifUrl(results[0].url);
+      if (results.length > 0) {
+        setGifResults(results);
+        setGifUrl(results[0].url);
+      }
     } finally {
       store.setIsSearchingGif(false);
     }

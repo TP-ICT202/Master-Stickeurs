@@ -1,6 +1,6 @@
 import {
   GEMINI_API_KEY, DEFAULT_GEMINI_API_KEY, PICSART_API_KEY, EDEN_API_KEY,
-  POLINATION_AI_API_KEY, IMAGE_GPT_API_KEY, PEXELS_API_KEY, GROK_API_KEY,
+  POLINATION_AI_API_KEY, IMAGE_GPT_API_KEY, PEXELS_API_KEY, GROK_API_KEY, OPEN_ROUTE_API_KEY,
 } from '../config';
 import { puterTxt2img, puterRemoveBg } from './puter';
 import type { AudioMemeResult } from '../types';
@@ -8,6 +8,7 @@ import RNFS from 'react-native-fs';
 import { mimeFromPath } from '../utils/imageMime';
 import { useStore } from '../store/useStore';
 import { grokGenerateText, grokGenerateImage } from './grok';
+import { openRouterGenerateText, openRouterGenerateImage } from './openrouter';
 
 const BASE_URL = 'https://generativelanguage.googleapis.com';
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
@@ -78,6 +79,9 @@ async function callWithFallback(body: object): Promise<string | null> {
   let result = await callGemini(body);
   if (result) return result;
   result = await callGrokFallback(body);
+  if (result) return result;
+  const prompt = (body as any)?.contents?.[0]?.parts?.[0]?.text;
+  if (prompt) result = await openRouterGenerateText(prompt);
   return result;
 }
 
@@ -94,7 +98,13 @@ async function callGeminiWithImage(imagePath: string, prompt: string): Promise<s
       }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.85 },
     };
-    return callWithFallback(body);
+
+    let result = await callGemini(body);
+    if (result) return result;
+    result = await callGrokFallback(body);
+    if (result) return result;
+    result = await openRouterGenerateText(prompt, base64Image, mimeType);
+    return result;
   } catch (e) {
     console.warn('[callGeminiWithImage] error:', e);
     return null;
@@ -344,6 +354,9 @@ export async function generateImageFromPrompt(prompt: string): Promise<string | 
 
   const grok = await grokGenerateImage(prompt);
   if (grok) return grok;
+
+  const openRouterImg = await openRouterGenerateImage(prompt);
+  if (openRouterImg) return openRouterImg;
 
   const imageGpt = await generateWithImageGpt(prompt);
   if (imageGpt) return imageGpt;

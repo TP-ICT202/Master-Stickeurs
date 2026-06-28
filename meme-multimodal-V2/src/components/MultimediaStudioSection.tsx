@@ -349,16 +349,16 @@ function GifContent({ contextText }: { contextText: string }) {
 
   const handleGenerate = async () => {
     store.setIsSearchingGif(true);
-    setGifUrl(null);
-    setGifResults([]);
     try {
       const q = store.statusImagePath
         ? await generateGifQueryFromImage(store.statusImagePath)
         : await generateGifSearchQuery(contextText);
       store.setGifQuery(q);
       const results = await searchGifs(q, 6);
-      setGifResults(results);
-      if (results.length > 0) setGifUrl(results[0].url);
+      if (results.length > 0) {
+        setGifResults(results);
+        setGifUrl(results[0].url);
+      }
     } finally {
       store.setIsSearchingGif(false);
     }
